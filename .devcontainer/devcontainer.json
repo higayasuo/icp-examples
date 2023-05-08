@@ -4,7 +4,14 @@
 	"name": "icp",
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "app",
-  "workspaceFolder": "/app"
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dfinity-foundation.vscode-motoko"
+      ]
+    }
+  }
   // Set *default* container specific settings.json values on container create.
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	//"image": "mcr.microsoft.com/devcontainers/typescript-node:0-18"

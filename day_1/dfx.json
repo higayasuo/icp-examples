@@ -1,0 +1,8 @@
+{
+  "canisters": {
+    "day_1": {
+      "main": "challenges.mo",
+      "type": "motoko"
+    }
+  }
+}
