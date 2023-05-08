@@ -1,7 +1,7 @@
 # Day 1 Questions
 
 ## Q1. How much is the current memory capacity of a canister?
-A1: 4G
+A1: 4GB
 
 ## Q2. What is the issue with the following code sample?
 actor {
