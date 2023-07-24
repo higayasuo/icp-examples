@@ -1,0 +1,12 @@
+[package]
+name = "counter"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = "0.9.1"
+ic-cdk = "0.10.0"
+ic-cdk-macros = "0.7.0"
