@@ -22,4 +22,6 @@ RUN echo '"\\e[B": history-search-forward' >> ~/.inputrc
 
 RUN sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN /home/node/.cargo/bin/rustup target add wasm32-unknown-unknown
+RUN ~/.cargo/bin/rustup target add wasm32-unknown-unknown
+RUN ~/.cargo/bin/cargo install candid-extractor
+RUN ~/.cargo/bin/cargo install ic-wasm
