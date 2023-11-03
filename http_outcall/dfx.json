@@ -1,0 +1,19 @@
+{
+  "canisters": {
+    "http_outcall_backend": {
+      "candid": "src/http_outcall_backend/http_outcall_backend.did",
+      "wasm": "target/wasm32-unknown-unknown/release/http_outcall_backend.wasm",
+      "package": "http_outcall_backend",
+      "type": "custom",
+      "build": "sh ./build.sh http_outcall_backend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

@@ -1,0 +1,6 @@
+service : {
+  formpoost : () -> (text);
+  get : () -> (text);
+  jsonget : () -> (text);
+  qsget : () -> (text);
+}

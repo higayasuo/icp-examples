@@ -1,0 +1,4 @@
+[workspace]
+members = [
+    "src/http_outcall_backend",
+]
