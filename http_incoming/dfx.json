@@ -1,0 +1,32 @@
+{
+  "canisters": {
+    "http_incoming_backend": {
+      "candid": "src/http_incoming_backend/http_incoming_backend.did",
+      "wasm": "target/wasm32-unknown-unknown/release/http_incoming_backend.wasm",
+      "package": "http_incoming_backend",
+      "type": "custom",
+      "build": "sh ./build.sh http_incoming_backend"
+    },
+    "http_incoming_frontend": {
+      "dependencies": [
+        "http_incoming_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/http_incoming_frontend/src/index.html"
+      },
+      "source": [
+        "src/http_incoming_frontend/assets",
+        "dist/http_incoming_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
