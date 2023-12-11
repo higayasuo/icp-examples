@@ -15,7 +15,7 @@ impl Counter {
         self.count.clone()
     }
 
-    pub fn set(&mut self, count: Nat) -> () {
+    pub fn set(&mut self, count: Nat) {
         self.count = count
     }
 
