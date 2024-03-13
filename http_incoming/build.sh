@@ -6,13 +6,9 @@ did_file="src/$package/$package.did"
 wasm_file="target/wasm32-unknown-unknown/release/$package.wasm"
 opt_wasm_file="target/wasm32-unknown-unknown/release/$package-opt.wasm"
 
-if [ "$(`which candid-extractor`)" == "" ]; then
-    cargo install candid-extractor
-fi
+if [ -z "$(which candid-extractor)" ]; then cargo install candid-extractor;fi
 
-if [ "$(`which ic-wasm`)" == "" ]; then
-    cargo install ic-wasm
-fi
+if [ -z "$(which ic-wasm)" ]; then cargo install ic-wasm;fi
 
 cargo build \
     --target wasm32-unknown-unknown \
