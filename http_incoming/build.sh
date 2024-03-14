@@ -6,6 +6,12 @@ did_file="src/$package/$package.did"
 wasm_file="target/wasm32-unknown-unknown/release/$package.wasm"
 opt_wasm_file="target/wasm32-unknown-unknown/release/$package-opt.wasm"
 
+if [ -z "$(rustup show | grep wasm32-unknown-unknown)" ]; then rustup target add --toolchain stable wasm32-unknown-unknown;fi
+
+if [ -z "$(which candid-extractor)" ]; then cargo install candid-extractor;fi
+
+if [ -z "$(which ic-wasm)" ]; then cargo install ic-wasm;fi
+
 cargo build \
     --target wasm32-unknown-unknown \
     --release \
