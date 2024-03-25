@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { backend } from '$lib/canisters';
 	import '$lib/canisters';
-	let name = 'Yasuo';
-	let greet = '';
+	let name = $state('Yasuo');
+	let greet = $state('');
 
 	const onclick = async () => {
 		greet = await backend.greet(name);
-		//greet = `Hello ${name}`;
 	};
 </script>
 
