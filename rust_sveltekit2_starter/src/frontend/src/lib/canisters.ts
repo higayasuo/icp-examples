@@ -1,17 +1,6 @@
-// import { createActor, canisterId } from '../../../declarations/backend';
-// import { building } from '$app/environment';
+import { createActor, canisterId } from '../../../declarations/backend';
 
-// function dummyActor() {
-// 	return new Proxy(
-// 		{},
-// 		{
-// 			get() {
-// 				throw new Error('Canister invoked while building');
-// 			}
-// 		}
-// 	);
-// }
+export const host =
+	process.env.DFX_NETWORK == 'local' ? `http://localhost:4943` : `https://${canisterId}.ic0.app`;
 
-// const buildingOrTesting = building || process.env.NODE_ENV === 'test';
-
-// export const backend = buildingOrTesting ? dummyActor() : createActor(canisterId);
+export const backend = createActor(canisterId, { agentOptions: { host } });
