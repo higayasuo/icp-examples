@@ -14,7 +14,7 @@
 	{greet}<br />
 	<button
 		type="button"
-		class="bg-blue-500 hover:bg-blue-700 text-white font-bold px-4 rounded"
+		class="bg-blue-500 hover:bg-blue-700 text-white font-bold px-4 py-1 rounded-xl mt-2"
 		{onclick}>Greet</button
 	>
 </form>
