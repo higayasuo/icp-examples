@@ -5,6 +5,7 @@
   },
   "name": "expo-starter",
   "scripts": {
+    "dfx:start": "unset DFX_USE_POCKET_IC && dfx start --clean",
     "build": "npm run build --workspaces --if-present",
     "prebuild": "npm run prebuild --workspaces --if-present",
     "pretest": "npm run prebuild --workspaces --if-present",

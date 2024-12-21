@@ -9,6 +9,14 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+ic-crypto-internal-basic-sig-rsa-pkcs1 = { git = "https://github.com/dfinity/ic.git" }
+ic-crypto-getrandom-for-wasm = { git = "https://github.com/dfinity/ic.git" }
+
 candid = "0.10"
 ic-cdk = "0.16"
-ic-cdk-timers = "0.10" # Feel free to remove this dependency if you don't need timers
+
+[dev-dependencies]
+hex = "0.4.3"
+
+# [target.'cfg(all(target_arch = "wasm32", target_vendor = "unknown", target_os = "unknown"))'.dependencies]
+# getrandom = { version = "0.2", features = ["custom"] }
