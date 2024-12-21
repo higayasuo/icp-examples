@@ -4,7 +4,7 @@ import { backend } from '../canisters';
 import { useState } from 'react';
 
 const greet = async (input: string) => {
-  const result = await backend.greet2(input);
+  const result = await backend.greet(input);
   console.log('result:', result);
   Toast.show(result, {
     duration: Toast.durations.LONG,

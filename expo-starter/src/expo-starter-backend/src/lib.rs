@@ -1,5 +1,5 @@
 #[ic_cdk::query]
-fn greet2(name: String) -> String {
+fn greet(name: String) -> String {
     format!("Hello, {}!", name)
 }
 
