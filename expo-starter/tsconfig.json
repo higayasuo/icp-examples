@@ -1,11 +1,36 @@
 {
-    "compilerOptions": {
-        "strict": true,
-        "target": "ES2020",
-        "experimentalDecorators": true,
-        "strictPropertyInitialization": false,
-        "moduleResolution": "node",
-        "allowJs": true,
-        "outDir": "HACK_BECAUSE_OF_ALLOW_JS"
-    }
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "jsx": "react-native",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "typeRoots": [
+      "./src/expo-starter-frontend/icp"
+    ],
+    "types": []
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "extends": "expo/tsconfig.base"
 }
