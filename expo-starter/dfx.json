@@ -5,7 +5,7 @@
       "package": "expo-starter-backend",
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/expo_starter_backend.wasm",
-      "build": "sh ./build-backend.sh",
+      "build": "sh ./scripts/build-backend.sh",
       "dependencies": ["internet_identity"],
       "post_install": ["node scripts/generate-env.js"]
     },

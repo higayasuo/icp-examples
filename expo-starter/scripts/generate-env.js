@@ -35,7 +35,7 @@ try {
   const tsContent = `// This file is auto-generated. Do not edit directly.
 // Generated from env.txt by dfx deploy
 
-export const ENV_VARS = ${JSON.stringify(envVars, null, 2)} as const;
+export const ENV_VARS: Record<string, string> = ${JSON.stringify(envVars, null, 2)} as const;
 `;
 
   // Write the file
