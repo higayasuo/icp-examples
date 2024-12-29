@@ -1,6 +1,5 @@
 import { ENV_VARS } from './env.generated';
 import { getLocalCanisterURL } from './getLocalCanisterURL';
-import { DfxNetwork } from './types';
 
 /**
  * Constructs the URL for accessing a canister.
