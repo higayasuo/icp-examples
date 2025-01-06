@@ -12,9 +12,9 @@ import Constants from 'expo-constants';
  * @returns {string} - The local host address.
  */
 export const getLocalHostAddress = (): string => {
-  if (Platform.OS === 'android') {
-    return '10.0.2.2';
-  }
+  // if (Platform.OS === 'android') {
+  //   return '10.0.2.2';
+  // }
 
   if (Platform.OS === 'web') {
     return 'localhost';

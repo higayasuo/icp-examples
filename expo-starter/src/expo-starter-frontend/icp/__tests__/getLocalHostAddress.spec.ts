@@ -38,11 +38,6 @@ describe('getLocalHostAddress', () => {
     };
   });
 
-  it('should return "10.0.2.2" for Android platform', () => {
-    mockedPlatform.OS = 'android';
-    expect(getLocalHostAddress()).toBe('10.0.2.2');
-  });
-
   it('should return "localhost" for web platform', () => {
     mockedPlatform.OS = 'web';
     expect(getLocalHostAddress()).toBe('localhost');
@@ -50,6 +45,11 @@ describe('getLocalHostAddress', () => {
 
   it('should return IP address from hostUri for iOS platform', () => {
     mockedPlatform.OS = 'ios';
+    expect(getLocalHostAddress()).toBe('192.168.1.5');
+  });
+
+  it('should return IP address from hostUri for Android platform', () => {
+    mockedPlatform.OS = 'android';
     expect(getLocalHostAddress()).toBe('192.168.1.5');
   });
 

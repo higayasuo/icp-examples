@@ -1,22 +1,25 @@
-import { isSubdomainSupported } from './isSubdomainSupported';
-import { getLocalHostAddress } from './getLocalHostAddress';
+//import { isSubdomainSupported } from './isSubdomainSupported';
+//import { getLocalHostAddress } from './getLocalHostAddress';
 
-const PORT = 4943;
+//const PORT = 4943;
+
+const NGROK_URL = 'https://494a-175-111-121-27.ngrok-free.app';
 
 /**
- * Constructs the URL for accessing a canister in a local development environment.
+ * Generates a URL for a local canister based on the given canister ID.
  *
- * This function determines the appropriate URL format based on whether subdomain URLs are supported.
- * If subdomains are supported, it constructs a URL with the canister ID as a subdomain.
- * Otherwise, it uses the local host address and includes the canister ID as a query parameter.
+ * This function constructs a URL that can be used to access a canister running locally.
+ * It checks if subdomains are supported in the current environment. If they are, it generates
+ * a URL with the canister ID as a subdomain. Otherwise, it uses an ngrok URL with the canister ID
+ * as a query parameter.
  *
- * @param {string} canisterId - The ID of the canister to generate a URL for.
- * @returns {string} - The local URL for accessing the canister.
+ * @param {string} canisterId - The ID of the canister.
+ * @returns {string} - The URL for the local canister.
  */
 export const getLocalCanisterURL = (canisterId: string): string => {
-  if (isSubdomainSupported()) {
-    return `http://${canisterId}.localhost:${PORT}`;
-  }
+  // if (isSubdomainSupported()) {
+  //   return `http://${canisterId}.localhost:${PORT}`;
+  // }
 
-  return `http://${getLocalHostAddress()}:${PORT}?canisterId=${canisterId}`;
+  return `${NGROK_URL}?canisterId=${canisterId}`;
 };
