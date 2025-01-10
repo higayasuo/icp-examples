@@ -12,26 +12,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { getCanisterURL } from '@/icp/getCanisterURL';
 import { ENV_VARS } from '@/icp/env.generated';
-import { router } from 'expo-router';
+import { router, usePathname, Href } from 'expo-router';
+import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 
-/**
- * Save a value to secure storage
- * @param key - The key to store the value under
- * @param value - The value to store
- */
-// async function save(key: string, value: string): Promise<void> {
-//   await SecureStore.setItemAsync(key, value);
-// }
+const navigate = (path: string) => {
+  try {
+    // Try to navigate to the stored path
+    router.replace(path as Href);
+  } catch {
+    // If navigation fails, go to the home page
+    console.warn('Navigation failed, redirecting to home');
+    router.replace('/');
+  }
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
     undefined,
   );
   const [isReady, setIsReady] = useState(false);
   const url = useURL();
-  /**
-   * @type {[DelegationIdentity | undefined, React.Dispatch<React.SetStateAction<DelegationIdentity | undefined>>]} state
-   */
+  const pathname = usePathname();
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
     undefined,
   );
@@ -85,7 +86,16 @@ export function useAuth() {
       setIdentity(id);
 
       WebBrowser.dismissBrowser();
-      router.replace('/');
+
+      // Get the stored path and navigate back to it
+      AsyncStorage.getItem('lastPath').then((path) => {
+        if (path) {
+          navigate(path);
+          AsyncStorage.removeItem('lastPath');
+        } else {
+          router.replace('/');
+        }
+      });
     }
   }, [url, baseKey, identity]);
 
@@ -96,8 +106,10 @@ export function useAuth() {
       return;
     }
 
+    // Store the current path before navigating to login
+    await AsyncStorage.setItem('lastPath', pathname);
+
     const derKey = toHex(baseKey.getPublicKey().toDer());
-    //const url = new URL("https://tdpaj-biaaa-aaaab-qaijq-cai.icp0.io/");
     const iiIntegrationURL = getCanisterURL(
       ENV_VARS.CANISTER_ID_II_INTEGRATION,
     );
@@ -105,12 +117,16 @@ export function useAuth() {
     const url = new URL(iiIntegrationURL);
 
     // Get the appropriate URI based on the environment
-    const redirectUri = createURL('/redirect');
+    const redirectUri = createURL('/');
     console.log('redirectUri:', redirectUri);
 
-    url.searchParams.set('redirect_uri', encodeURIComponent(redirectUri));
+    const iiUri = getInternetIdentityURL();
+    console.log('iiUri:', iiUri);
 
+    url.searchParams.set('redirect_uri', redirectUri);
     url.searchParams.set('pubkey', derKey);
+    url.searchParams.set('ii_uri', iiUri);
+    console.log('Full URL:', url.toString());
     return await WebBrowser.openBrowserAsync(url.toString());
   };
 
@@ -128,4 +144,4 @@ export function useAuth() {
     login,
     logout,
   };
-}
+};

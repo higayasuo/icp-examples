@@ -1,6 +1,8 @@
 import { ENV_VARS } from './env.generated';
-import { getLocalCanisterURL } from './getLocalCanisterURL';
+import { getLocalCanisterSubdomainURL } from './getLocalCanisterSubdomainURL';
+import { isSubdomainSupported } from './isSubdomainSupported';
 
+const BASE_URL = 'https://192.168.0.210:14943/';
 /**
  * Constructs the URL for accessing a canister.
  * @param {string} canisterId - The ID of the canister.
@@ -11,5 +13,9 @@ export const getCanisterURL = (canisterId: string): string => {
     return `https://${canisterId}.ic0.app`;
   }
 
-  return getLocalCanisterURL(canisterId);
+  if (isSubdomainSupported()) {
+    return getLocalCanisterSubdomainURL(canisterId);
+  }
+
+  return `${BASE_URL}?canisterId=${canisterId}`;
 };

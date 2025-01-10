@@ -1,9 +1,9 @@
 {
-  "name": "@pavus/ii_integration",
+  "name": "ii-integration",
   "private": true,
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,12 +13,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dfinity/agent": "^0.20.2",
+    "@dfinity/agent": "file:../expo-starter-frontend/dfinity-agent-0.20.2.tgz",
+    "@dfinity/bls-verify": "file:../expo-starter-frontend/dfinity-bls-verify-0.20.2.tgz",
     "@dfinity/auth-client": "^0.20.2",
     "@dfinity/candid": "^0.20.2",
     "@dfinity/identity": "^0.20.2",
     "@dfinity/ii-login-button": "^0.0.7",
     "@dfinity/principal": "^0.20.2",
+    "@noble/curves": "file:../expo-starter-frontend/noble-curves-1.2.0.tgz",
     "buffer": "^6.0.3"
   },
   "devDependencies": {

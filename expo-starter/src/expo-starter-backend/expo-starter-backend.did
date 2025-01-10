@@ -1,1 +1,1 @@
-service : { greet : (text) -> (text) query }
+service : { whoami : () -> (text) query }

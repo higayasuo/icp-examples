@@ -1,0 +1,13 @@
+[
+  {
+    "match": ".ic-assets.json5",
+    "ignore": true,
+  },
+  {
+    "match": "**/*",
+    "headers": {
+      "Content-Security-Policy": "default-src 'self';script-src 'self' '/assets' 'unsafe-eval' 'unsafe-inline' http://192.168.0.*:* https://192.168.0.*:*;connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://identity.ic0.app https://ic0.app https://*.ic0.app https://*.raw.ic0.app https://*.ngrok-free.app;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;"
+    },
+    "security_policy": "standard"
+  }
+]

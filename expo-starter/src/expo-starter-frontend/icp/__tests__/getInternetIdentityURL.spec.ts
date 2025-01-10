@@ -13,7 +13,7 @@ vi.mock('../getLocalCanisterURL', () => ({
 vi.mock('../env.generated', () => ({
   ENV_VARS: {
     DFX_NETWORK: 'local',
-    INTERNET_IDENTITY_CANISTER_ID: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
+    CANISTER_ID_INTERNET_IDENTITY: 'rdmx6-jaaaa-aaaaa-aaadq-cai',
   },
 }));
 
@@ -48,7 +48,7 @@ describe('getInternetIdentityURL', () => {
         'http://localhost:4943?canisterId=rdmx6-jaaaa-aaaaa-aaadq-cai',
       );
       expect(mockGetLocalCanisterURL).toHaveBeenCalledWith(
-        'rdmx6-jaaaa-aaaaa-aaadq-cai',
+        ENV_VARS.CANISTER_ID_INTERNET_IDENTITY,
       );
       expect(mockGetLocalCanisterURL).toHaveBeenCalledTimes(1);
     });

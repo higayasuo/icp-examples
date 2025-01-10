@@ -9,19 +9,21 @@
       "dependencies": ["internet-identity"],
       "post_install": ["node scripts/generate-env.js"]
     },
-    "ii_integration": {
+    "ii-integration": {
       "dependencies": [
         "expo-starter-backend"
       ],
       "source": [
-        "src/ii_integration/dist"
+        "src/ii-integration/dist"
       ],
       "type": "assets",
-      "workspace": "src/ii_integration"
+      "build": "npm run build --prefix src/ii-integration"
     },
     "internet-identity": {
-      "type": "pull",
-      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity_dev.wasm.gz",
+      "init_arg": "(opt record { captcha_config = opt record { max_unsolved_captchas= 50:nat64; captcha_trigger = variant {Static = variant {CaptchaDisabled}}}})"
     }
   },
   "defaults": {
@@ -32,7 +34,7 @@
   },
   "networks": {
     "local": {
-      "bind": "0.0.0.0:4943"
+      "bind": "localhost:4943"
     }
   },
   "output_env_file": "src/expo-starter-frontend/icp/env.txt",

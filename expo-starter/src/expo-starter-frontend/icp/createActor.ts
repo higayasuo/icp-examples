@@ -27,9 +27,19 @@ export function createActor<T>({
   const httpAgentOptions = {
     host: getCanisterURL(canisterId),
     identity,
+    // fetchOptions: {
+    //   reactNative: {
+    //     __nativeResponseType: 'base64',
+    //   },
+    // },
+    // callOptions: {
+    //   reactNative: {
+    //     textStreaming: true,
+    //   },
+    // },
   };
 
-  const agent = HttpAgent.createSync(httpAgentOptions);
+  const agent = new HttpAgent(httpAgentOptions);
 
   if (ENV_VARS.DFX_NETWORK === 'local') {
     agent.fetchRootKey().catch((err) => {

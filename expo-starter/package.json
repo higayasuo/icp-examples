@@ -4,18 +4,13 @@
     "npm": ">=7.0.0"
   },
   "scripts": {
-    "dfx:start": "unset DFX_USE_POCKET_IC && dfx start --clean",
-    "build": "npm run build --workspaces --if-present",
-    "prebuild": "npm run prebuild --workspaces --if-present",
-    "pretest": "npm run prebuild --workspaces --if-present",
-    "start": "npm start --workspaces --if-present",
-    "test": "npm test --workspaces --if-present"
+    "dfx:start": "env II_FETCH_ROOT_KEY=1 II_DUMMY_CAPTCHA=1 II_DUMMY_AUTH=1 II_DEV_CSP=1 dfx start --clean",
+    "ssl:canisters": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 14943 --target 4943",
+    "ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.211-key.pem --cert ./.mkcert/192.168.0.211.pem --source 24943 --target 4943"
   },
   "name": "expo-starter",
   "type": "module",
-  "workspaces": [
-    "src/ii_integration"
-  ],
   "devDependencies": {
+    "local-ssl-proxy": "^2.0.5"
   }
 }

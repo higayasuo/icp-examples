@@ -1,6 +1,8 @@
+use ic_cdk::caller;
+
 #[ic_cdk::query]
-fn greet(name: String) -> String {
-    format!("Hello, {}!", name)
+fn whoami() -> String {
+    format!("Hello, {}!", caller().to_text())
 }
 
 ic_cdk::export_candid!();

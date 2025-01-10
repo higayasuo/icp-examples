@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
+import { useBackend } from '@/hooks/useBackend';
 
 interface LoggedInProps {
   logout: () => void;
@@ -19,40 +20,43 @@ interface LoggedInProps {
 
 function LoggedIn({ logout }: LoggedInProps) {
   const { identity } = useAuth();
-  const [principal, setPrincipal] = React.useState<string | null>(null);
+  const { backend } = useBackend();
+  const [who, setWho] = React.useState<string | undefined>();
   const [busy, setBusy] = React.useState(false);
 
   const whoami = async () => {
-    if (!identity) return;
+    // if (!identity) return;
 
-    const agent = await HttpAgent.create({
-      identity,
-      host: 'https://icp-api.io',
-      fetchOptions: {
-        reactNative: {
-          __nativeResponseType: 'base64',
-        },
-      },
-      verifyQuerySignatures: true,
-      callOptions: {
-        reactNative: {
-          textStreaming: true,
-        },
-      },
-    });
+    // const agent = new HttpAgent({
+    //   identity,
+    //   host: 'https://icp-api.io',
+    //   fetchOptions: {
+    //     reactNative: {
+    //       __nativeResponseType: 'base64',
+    //     },
+    //   },
+    //   verifyQuerySignatures: true,
+    //   callOptions: {
+    //     reactNative: {
+    //       textStreaming: true,
+    //     },
+    //   },
+    // });
 
-    // @ts-ignore - IDL type issues are known in the dfinity ecosystem
-    const idlFactory = ({ IDL }) => {
-      return IDL.Service({ whoami: IDL.Func([], [IDL.Principal], ['query']) });
-    };
+    // // @ts-ignore - IDL type issues are known in the dfinity ecosystem
+    // const idlFactory = ({ IDL }) => {
+    //   return IDL.Service({ whoami: IDL.Func([], [IDL.Principal], ['query']) });
+    // };
 
-    const actor = Actor.createActor(idlFactory, {
-      agent,
-      canisterId: 'ivcos-eqaaa-aaaab-qablq-cai',
-    });
+    // const actor = Actor.createActor(idlFactory, {
+    //   agent,
+    //   canisterId: 'ivcos-eqaaa-aaaab-qablq-cai',
+    // });
 
-    const response = await actor.whoami();
-    return response;
+    // const response = await actor.whoami();
+    if (!backend) return;
+
+    return backend.whoami();
   };
 
   return (
@@ -69,9 +73,9 @@ function LoggedIn({ logout }: LoggedInProps) {
         accessibilityState={{ busy }}
         onPress={() => {
           setBusy(true);
-          whoami().then((principal) => {
-            if (principal) {
-              setPrincipal(Principal.from(principal).toString());
+          whoami().then((who) => {
+            if (who) {
+              setWho(who);
             }
             setBusy(false);
           });
@@ -79,7 +83,7 @@ function LoggedIn({ logout }: LoggedInProps) {
       >
         <Text style={buttonTextStyles}>whoami</Text>
       </Pressable>
-      {principal && <Text style={baseTextStyles}>Principal: {principal}</Text>}
+      {who && <Text style={baseTextStyles}>who: {who}</Text>}
       <Pressable
         style={busy ? disabledButtonStyles : buttonStyles}
         accessibilityRole="button"
