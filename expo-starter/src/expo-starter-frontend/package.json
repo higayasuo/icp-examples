@@ -20,22 +20,21 @@
     "@noble/curves": "file:noble-curves-1.2.0.tgz",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/native": "^7.0.14",
-    "expo": "~52.0.22",
+    "expo": "~52.0.25",
     "expo-font": "~13.0.2",
-    "expo-linking": "~7.0.3",
-    "expo-router": "~4.0.15",
-    "expo-secure-store": "~14.0.0",
-    "expo-splash-screen": "~0.29.18",
-    "expo-status-bar": "~2.0.0",
-    "expo-system-ui": "~4.0.6",
-    "expo-web-browser": "~14.0.1",
+    "expo-linking": "~7.0.4",
+    "expo-router": "~4.0.16",
+    "expo-secure-store": "~14.0.1",
+    "expo-splash-screen": "~0.29.20",
+    "expo-status-bar": "~2.0.1",
+    "expo-system-ui": "~4.0.7",
+    "expo-web-browser": "~14.0.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-native": "0.76.5",
+    "react-native": "0.76.6",
     "react-native-reanimated": "~3.16.1",
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "~4.4.0",
-    "react-native-toast-notifications": "^3.4.0",
     "react-native-web": "~0.19.13",
     "react-native-webview": "^13.12.5"
   },
@@ -45,5 +44,14 @@
     "typescript": "~5.3.3",
     "vitest": "^2.1.8"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false,
+        "exclude": [
+        ]
+      }
+    }
+  }
 }

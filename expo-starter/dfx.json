@@ -20,10 +20,8 @@
       "build": "npm run build --prefix src/ii-integration"
     },
     "internet-identity": {
-      "type": "custom",
-      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity.did",
-      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-12-06/internet_identity_dev.wasm.gz",
-      "init_arg": "(opt record { captcha_config = opt record { max_unsolved_captchas= 50:nat64; captcha_trigger = variant {Static = variant {CaptchaDisabled}}}})"
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     }
   },
   "defaults": {
@@ -33,9 +31,6 @@
     }
   },
   "networks": {
-    "local": {
-      "bind": "localhost:4943"
-    }
   },
   "output_env_file": "src/expo-starter-frontend/icp/env.txt",
   "version": 1

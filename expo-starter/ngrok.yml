@@ -1,8 +1,0 @@
-version: "2"
-tunnels:
-  app:
-    proto: http
-    addr: 4943
-  ii:
-    proto: http
-    addr: 4943
