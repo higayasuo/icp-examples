@@ -4,7 +4,7 @@
     "npm": ">=7.0.0"
   },
   "scripts": {
-    "dfx:start": "env II_FETCH_ROOT_KEY=1 II_DUMMY_CAPTCHA=1 II_DUMMY_AUTH=1 II_DEV_CSP=1 dfx start --clean",
+    "dfx:start": "dfx start --clean",
     "dfx:deploy": "dfx deps deploy && dfx deploy",
     "ssl:canisters": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 14943 --target 4943",
     "ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.211-key.pem --cert ./.mkcert/192.168.0.211.pem --source 24943 --target 4943",

@@ -1,23 +1,11 @@
 import { StyleSheet, View } from 'react-native';
-import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoggedIn from '@/components/LoggedIn';
 import LoggedOut from '@/components/LoggedOut';
 
 export default function TabOneScreen() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { identity, isReady, logout } = useAuth();
-
-  const triggerLogout = () => {
-    setIsLoggedIn(false);
-    logout();
-  };
-
-  useEffect(() => {
-    if (identity) {
-      setIsLoggedIn(true);
-    }
-  }, [identity]);
+  console.log('identity', identity);
 
   if (!isReady) {
     return undefined;
@@ -25,7 +13,7 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container} accessible={true}>
-      {isLoggedIn ? <LoggedIn logout={triggerLogout} /> : <LoggedOut />}
+      {identity ? <LoggedIn logout={logout} /> : <LoggedOut />}
     </View>
   );
 }

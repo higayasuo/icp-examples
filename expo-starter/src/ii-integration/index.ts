@@ -56,13 +56,21 @@ async function main(): Promise<void> {
             const url = `${redirectUri}?delegation=${encodedDelegation}`;
             console.log(`Prepared redirect URL: ${url}`);
 
+            loginButton.style.display = "none";
+
             const button = document.createElement("button");
             button.innerText = "Continue";
+            button.style.fontSize = "20px";
+            button.style.padding = "10px 20px";
             button.addEventListener("click", () => {
               console.log('Continue button clicked, redirecting...');
               window.open(url, "_self");
+              window.close();
             });
             document.body.appendChild(button);
+
+            window.open(url, "_self");
+            window.close();
           },
           onError: (error?: string) => {
             console.log('Login error callback triggered:', error);

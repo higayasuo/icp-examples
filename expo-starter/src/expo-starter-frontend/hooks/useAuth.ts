@@ -31,6 +31,7 @@ export const useAuth = () => {
     undefined,
   );
   const [isReady, setIsReady] = useState(false);
+  //const [isLoggingIn, setIsLoggingIn] = useState(false);
   const url = useURL();
   const pathname = usePathname();
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
@@ -68,7 +69,6 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    // If we have an identity or no baseKey, we don't need to do anything
     if (identity || !baseKey || !url) {
       return;
     }
@@ -77,10 +77,7 @@ export const useAuth = () => {
     const delegation = search.get('delegation');
 
     if (delegation) {
-      console.log('delegation:', delegation);
-      const chain = DelegationChain.fromJSON(
-        JSON.parse(decodeURIComponent(delegation)),
-      );
+      const chain = DelegationChain.fromJSON(JSON.parse(delegation));
       AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
       const id = DelegationIdentity.fromDelegation(baseKey, chain);
       setIdentity(id);
@@ -97,7 +94,7 @@ export const useAuth = () => {
         }
       });
     }
-  }, [url, baseKey, identity]);
+  }, [url, baseKey]);
 
   // Function to handle login and update identity based on base key
   const login = async () => {
@@ -113,20 +110,16 @@ export const useAuth = () => {
     const iiIntegrationURL = getCanisterURL(
       ENV_VARS.CANISTER_ID_II_INTEGRATION,
     );
-    console.log('iiIntegrationURL:', iiIntegrationURL);
     const url = new URL(iiIntegrationURL);
 
     // Get the appropriate URI based on the environment
     const redirectUri = createURL('/');
-    console.log('redirectUri:', redirectUri);
-
     const iiUri = getInternetIdentityURL();
-    console.log('iiUri:', iiUri);
 
     url.searchParams.set('redirect_uri', redirectUri);
     url.searchParams.set('pubkey', derKey);
     url.searchParams.set('ii_uri', iiUri);
-    console.log('Full URL:', url.toString());
+
     return await WebBrowser.openBrowserAsync(url.toString());
   };
 
