@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, Pressable } from "react-native";
-import { useAuth } from "../hooks/useAuth";
+import React from 'react';
+import { View, Text, Pressable } from 'react-native';
+import { useAuth } from '@/hooks/useAuth';
 import {
   baseTextStyles,
   containerStyles,
@@ -9,17 +9,23 @@ import {
   buttonStyles,
   disabledButtonStyles,
   buttonTextStyles,
-} from "./styles";
+} from './styles';
 
 export default function LoggedOut() {
   const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | undefined>();
   const { login } = useAuth();
 
   function handlePress() {
     setBusy(true);
-    login().then(() => {
-      setBusy(false);
-    });
+    setError(undefined); // Clear previous error
+    login()
+      .catch((error) => {
+        setError('Error occurred during login: ' + error.message);
+      })
+      .finally(() => {
+        setBusy(false);
+      });
   }
 
   return (
@@ -36,6 +42,7 @@ export default function LoggedOut() {
       >
         <Text style={buttonTextStyles}>Log in</Text>
       </Pressable>
+      {error && <Text style={{ color: 'red' }}>{error}</Text>}
       <Text style={baseTextStyles}>You are not authenticated</Text>
     </View>
   );

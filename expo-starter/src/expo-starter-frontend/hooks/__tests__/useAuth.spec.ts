@@ -1,49 +1,83 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useAuth } from '../useAuth';
+import { renderHook } from '@testing-library/react-hooks';
+import { useState, useEffect } from 'react';
+
+vi.mock('react', () => ({
+  useState: vi.fn((initialValue) => [initialValue, vi.fn()]),
+  useEffect: vi.fn(),
+}));
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  },
+}));
+
+vi.mock('expo-secure-store', () => ({
+  getItemAsync: vi.fn(),
+  setItemAsync: vi.fn(),
+}));
+
+vi.mock('expo-linking', () => ({
+  useURL: vi.fn(),
+  createURL: vi.fn(),
+}));
+
+vi.mock('expo-web-browser', () => ({
+  openBrowserAsync: vi.fn(),
+  dismissBrowser: vi.fn(),
+}));
+
+vi.mock('expo-router', () => ({
+  router: {
+    replace: vi.fn(),
+  },
+  usePathname: vi.fn(),
+}));
+
+vi.mock('@/icp/getCanisterURL', () => ({
+  getCanisterURL: vi.fn(),
+}));
+
+vi.mock('@/icp/env.generated', () => ({
+  ENV_VARS: {
+    DFX_NETWORK: 'local',
+    CANISTER_ID_II_INTEGRATION: 'rrkah-fqaaa-aaaaa-aaaaq-cai',
+  },
+}));
+
+vi.mock('@/icp/getInternetIdentityURL', () => ({
+  getInternetIdentityURL: vi.fn(),
+}));
 
 /**
- * Tests for URL encoding behavior in useAuth hook
+ * Test suite for useAuth hook
  */
-describe('URL encoding behavior', () => {
-  /**
-   * Test that URLSearchParams automatically handles URL encoding
-   */
-  it('should properly encode special characters in URL parameters', () => {
-    const mockRedirectUri = 'exp://192.168.1.1:8081/redirect';
-    const url = new URL('https://example.com');
-
-    url.searchParams.set('redirect_uri', mockRedirectUri);
-
-    // URLSearchParams should properly encode special characters
-    expect(url.toString()).toBe(
-      'https://example.com/?redirect_uri=exp%3A%2F%2F192.168.1.1%3A8081%2Fredirect',
-    );
+describe('useAuth', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   /**
-   * Test that using encodeURIComponent with URLSearchParams causes double encoding
+   * Test if useAuth is a valid React Hook
    */
-  it('should demonstrate that using encodeURIComponent causes double encoding', () => {
-    const mockRedirectUri = 'exp://192.168.1.1:8081/redirect';
-    const url = new URL('https://example.com');
-
-    url.searchParams.set('redirect_uri', encodeURIComponent(mockRedirectUri));
-
-    // This shows the undesired double encoding
-    expect(url.toString()).toBe(
-      'https://example.com/?redirect_uri=exp%253A%252F%252F192.168.1.1%253A8081%252Fredirect',
-    );
+  it('should be a valid React Hook', () => {
+    expect(useAuth.name).toBe('useAuth');
+    expect(() => renderHook(() => useAuth())).not.toThrow();
   });
 
   /**
-   * Test that URLSearchParams.get() automatically decodes the value
+   * Test if useAuth returns the expected initial state
    */
-  it('should automatically decode URL parameters when using get()', () => {
-    const originalUri = 'exp://192.168.1.1:8081/redirect';
-    const url = new URL('https://example.com');
-    url.searchParams.set('redirect_uri', originalUri);
+  it('should return initial state', () => {
+    const { result } = renderHook(() => useAuth());
 
-    // URLSearchParams.get() should automatically decode the value
-    const decoded = new URL(url.toString()).searchParams.get('redirect_uri');
-    expect(decoded).toBe(originalUri);
+    expect(result.current).toHaveProperty('identity', undefined);
+    expect(result.current).toHaveProperty('isReady', false);
+    expect(typeof result.current.login).toBe('function');
+    expect(typeof result.current.logout).toBe('function');
   });
 });

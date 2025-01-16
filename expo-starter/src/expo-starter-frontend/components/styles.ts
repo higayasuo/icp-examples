@@ -1,16 +1,17 @@
-import { ViewStyle, TextStyle } from "react-native";
+import { ViewStyle, TextStyle } from 'react-native';
 
 export const remToPx = (rem: number): number => rem * 16;
 
 export const containerStyles: ViewStyle = {
-  alignItems: "center",
-  justifyContent: "center",
+  alignItems: 'center',
+  justifyContent: 'center',
   paddingHorizontal: remToPx(2),
   paddingVertical: remToPx(2),
+  display: 'flex',
 };
 
 export const baseTextStyles: TextStyle = {
-  fontFamily: "Montserrat, sans-serif",
+  fontFamily: 'Montserrat, sans-serif',
   fontSize: remToPx(1),
   marginBottom: remToPx(1),
 };
@@ -26,11 +27,12 @@ export const subheaderStyles: TextStyle = {
 };
 
 export const buttonStyles: ViewStyle = {
-  borderColor: "#c3c3c4",
+  borderColor: '#c3c3c4',
   borderWidth: 1,
-  width: "100%",
-  justifyContent: "center",
-  backgroundColor: "white",
+  width: '100%',
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'white',
   marginBottom: remToPx(1),
   paddingVertical: remToPx(0.6),
   paddingHorizontal: remToPx(1),

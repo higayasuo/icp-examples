@@ -2,7 +2,7 @@ import { ENV_VARS } from './env.generated';
 import { getLocalCanisterSubdomainURL } from './getLocalCanisterSubdomainURL';
 import { isSubdomainSupported } from './isSubdomainSupported';
 
-const BASE_URL = 'https://192.168.0.210:14943/';
+const BASE_URL = 'https://192.168.0.44:14943/';
 /**
  * Constructs the URL for accessing a canister.
  * @param {string} canisterId - The ID of the canister.

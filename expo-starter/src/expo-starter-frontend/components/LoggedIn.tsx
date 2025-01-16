@@ -9,15 +9,13 @@ import {
   disabledButtonStyles,
   buttonTextStyles,
 } from './styles';
-import { useAuth } from '../hooks/useAuth';
 import { useBackend } from '@/hooks/useBackend';
 
 interface LoggedInProps {
-  logout: () => void;
+  onLogout: () => Promise<void>;
 }
 
-function LoggedIn({ logout }: LoggedInProps) {
-  const { identity } = useAuth();
+function LoggedIn({ onLogout }: LoggedInProps) {
   const { backend } = useBackend();
   const [who, setWho] = React.useState<string | undefined>();
   const [busy, setBusy] = React.useState(false);
@@ -25,8 +23,7 @@ function LoggedIn({ logout }: LoggedInProps) {
 
   const whoami = async () => {
     if (!backend) {
-      console.log('backend is not ready');
-      return;
+      throw new Error('backend is not ready');
     }
 
     return backend.whoami();
@@ -54,6 +51,7 @@ function LoggedIn({ logout }: LoggedInProps) {
               }
             })
             .catch((error) => {
+              setWho(undefined);
               setError(
                 'Error occurred while fetching identity: ' + error.message,
               );
@@ -72,8 +70,13 @@ function LoggedIn({ logout }: LoggedInProps) {
         accessibilityRole="button"
         disabled={busy}
         accessibilityState={{ busy }}
-        onPress={() => {
-          logout();
+        onPress={async () => {
+          setBusy(true);
+          try {
+            await onLogout();
+          } finally {
+            setBusy(false);
+          }
         }}
       >
         <Text style={buttonTextStyles}>Log out</Text>

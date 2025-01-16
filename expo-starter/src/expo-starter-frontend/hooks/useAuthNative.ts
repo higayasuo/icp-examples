@@ -26,56 +26,40 @@ const navigate = (path: string) => {
   }
 };
 
-export function useAuth() {
+export const useNativeAuth = () => {
   const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
     undefined,
   );
   const [isReady, setIsReady] = useState(false);
+  //const [isLoggingIn, setIsLoggingIn] = useState(false);
   const url = useURL();
   const pathname = usePathname();
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
     undefined,
   );
 
-  // Initialize auth state
   useEffect(() => {
-    if (isReady) {
-      console.log('skipping first useEffect');
-      return;
-    }
-
     (async () => {
-      const storedBaseKey = await SecureStore.getItemAsync('baseKey');
-      const storedDelegation = await AsyncStorage.getItem('delegation');
+      const storedKey = await SecureStore.getItemAsync('baseKey');
 
-      if (storedBaseKey) {
-        if (!baseKey) {
-          console.log('Restoring baseKey');
-          const key = Ed25519KeyIdentity.fromJSON(storedBaseKey);
-          setBaseKey(key);
-        }
-      } else {
-        console.log('Generating new baseKey');
-        const key = Ed25519KeyIdentity.generate();
-        await SecureStore.setItemAsync('baseKey', JSON.stringify(key.toJSON()));
+      if (storedKey) {
+        const key = Ed25519KeyIdentity.fromJSON(storedKey);
         setBaseKey(key);
+      } else {
+        const key = Ed25519KeyIdentity.generate();
+        setBaseKey(key);
+        await SecureStore.setItemAsync('baseKey', JSON.stringify(key.toJSON()));
       }
 
-      if (!identity && storedBaseKey && storedDelegation) {
-        const delegationChain = DelegationChain.fromJSON(
-          JSON.parse(storedDelegation),
-        );
+      const storedDelegation = await AsyncStorage.getItem('delegation');
 
-        if (isDelegationValid(delegationChain)) {
-          const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
-          const id = DelegationIdentity.fromDelegation(
-            baseKey,
-            delegationChain,
-          );
-          console.log('Setting identity from baseKey and delegation');
+      if (storedDelegation && storedKey) {
+        const chain = DelegationChain.fromJSON(JSON.parse(storedDelegation));
+        if (isDelegationValid(chain)) {
+          const key = Ed25519KeyIdentity.fromJSON(storedKey);
+          const id = DelegationIdentity.fromDelegation(key, chain);
           setIdentity(id);
         } else {
-          console.log('Invalid delegation chain, removing delegation');
           await AsyncStorage.removeItem('delegation');
         }
       }
@@ -84,7 +68,6 @@ export function useAuth() {
     })();
   }, []);
 
-  // Handle URL changes for login callback
   useEffect(() => {
     if (identity || !baseKey || !url) {
       return;
@@ -94,14 +77,14 @@ export function useAuth() {
     const delegation = search.get('delegation');
 
     if (delegation) {
-      console.log('delegation exists in URL');
       const chain = DelegationChain.fromJSON(JSON.parse(delegation));
       AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
       const id = DelegationIdentity.fromDelegation(baseKey, chain);
       setIdentity(id);
-      console.log('set identity from delegation');
+
       WebBrowser.dismissBrowser();
 
+      // Get the stored path and navigate back to it
       AsyncStorage.getItem('lastPath').then((path) => {
         if (path) {
           navigate(path);
@@ -113,11 +96,14 @@ export function useAuth() {
     }
   }, [url, baseKey]);
 
+  // Function to handle login and update identity based on base key
   const login = async () => {
     if (!baseKey) {
-      throw new Error('No base key');
+      console.log('No base key');
+      return;
     }
 
+    // Store the current path before navigating to login
     await AsyncStorage.setItem('lastPath', pathname);
 
     const derKey = toHex(baseKey.getPublicKey().toDer());
@@ -125,6 +111,8 @@ export function useAuth() {
       ENV_VARS.CANISTER_ID_II_INTEGRATION,
     );
     const url = new URL(iiIntegrationURL);
+
+    // Get the appropriate URI based on the environment
     const redirectUri = createURL('/');
     const iiUri = getInternetIdentityURL();
 
@@ -135,15 +123,10 @@ export function useAuth() {
     await WebBrowser.openBrowserAsync(url.toString());
   };
 
+  // Clear identity on logout
   const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('delegation');
-      setIdentity(undefined);
-      console.log('identity set to undefined after logout');
-    } catch (error) {
-      console.error('Error during logout:', error);
-      throw error;
-    }
+    setIdentity(undefined);
+    await AsyncStorage.removeItem('delegation');
   };
 
   return {
@@ -152,4 +135,4 @@ export function useAuth() {
     login,
     logout,
   };
-}
+};

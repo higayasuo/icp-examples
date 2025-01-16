@@ -2,7 +2,7 @@ import { ENV_VARS } from './env.generated';
 import { getLocalCanisterSubdomainURL } from './getLocalCanisterSubdomainURL';
 import { isSubdomainSupported } from './isSubdomainSupported';
 
-const BASE_URL = 'https://192.168.0.211:24943/';
+const BASE_URL = 'https://192.168.0.44:24943/';
 
 /**
  * Get the Internet Identity URL based on the current environment.
