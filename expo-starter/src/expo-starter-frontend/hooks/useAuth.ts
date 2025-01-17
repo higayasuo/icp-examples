@@ -14,6 +14,8 @@ import { getCanisterURL } from '@/icp/getCanisterURL';
 import { ENV_VARS } from '@/icp/env.generated';
 import { router, usePathname, Href } from 'expo-router';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
+import { AuthClient } from '@dfinity/auth-client';
+import { Platform } from 'react-native';
 
 const navigate = (path: string) => {
   try {
@@ -36,6 +38,9 @@ export function useAuth() {
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
     undefined,
   );
+  const [authClient, setAuthClient] = useState<AuthClient | undefined>(
+    undefined,
+  );
 
   // Initialize auth state
   useEffect(() => {
@@ -45,6 +50,22 @@ export function useAuth() {
     }
 
     (async () => {
+      if (Platform.OS === 'web') {
+        const authClient = await AuthClient.create();
+        setAuthClient(authClient);
+        console.log('authClient created');
+        const authenticated = await authClient.isAuthenticated();
+        console.log('authenticated', authenticated);
+
+        if (authenticated) {
+          setIdentity(authClient.getIdentity() as DelegationIdentity);
+          console.log('identity set from authClient');
+        }
+
+        setIsReady(true);
+        return;
+      }
+
       const storedBaseKey = await SecureStore.getItemAsync('baseKey');
       const storedDelegation = await AsyncStorage.getItem('delegation');
 
@@ -114,6 +135,22 @@ export function useAuth() {
   }, [url, baseKey]);
 
   const login = async () => {
+    if (Platform.OS === 'web') {
+      if (!authClient) {
+        throw new Error('Auth client not initialized');
+      }
+
+      const iiUri = getInternetIdentityURL();
+      await authClient.login({
+        identityProvider: iiUri,
+        onSuccess: () => {
+          setIdentity(authClient.getIdentity() as DelegationIdentity);
+          console.log('identity set from authClient');
+        },
+      });
+      return;
+    }
+
     if (!baseKey) {
       throw new Error('No base key');
     }
@@ -137,9 +174,20 @@ export function useAuth() {
 
   const logout = async () => {
     try {
+      if (Platform.OS === 'web') {
+        if (!authClient) {
+          throw new Error('Auth client not initialized');
+        }
+
+        await authClient.logout();
+        setIdentity(undefined);
+        console.log('identity set to undefined after logout for web');
+        return;
+      }
+
       await AsyncStorage.removeItem('delegation');
       setIdentity(undefined);
-      console.log('identity set to undefined after logout');
+      console.log('identity set to undefined after logout for native');
     } catch (error) {
       console.error('Error during logout:', error);
       throw error;

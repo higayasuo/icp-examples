@@ -9,14 +9,15 @@ import {
   disabledButtonStyles,
   buttonTextStyles,
 } from './styles';
-import { useBackend } from '@/hooks/useBackend';
+import { ActorSubclass } from '@dfinity/agent';
+import { _SERVICE } from '@/icp/expo-starter-backend.did';
 
 interface LoggedInProps {
   onLogout: () => Promise<void>;
+  backend: ActorSubclass<_SERVICE> | undefined;
 }
 
-function LoggedIn({ onLogout }: LoggedInProps) {
-  const { backend } = useBackend();
+function LoggedIn({ onLogout, backend }: LoggedInProps) {
   const [who, setWho] = React.useState<string | undefined>();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();

@@ -3,9 +3,12 @@ import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoggedIn from '@/components/LoggedIn';
 import LoggedOut from '@/components/LoggedOut';
+import { createBackend } from '@/icp/backend';
 
 export default function TabOneScreen() {
-  const { identity, isReady, logout } = useAuth();
+  const { identity, isReady, logout, login } = useAuth();
+
+  const backend = identity ? createBackend(identity) : undefined;
 
   // Track identity changes
   useEffect(() => {
@@ -19,7 +22,11 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container} accessible={true}>
-      {identity ? <LoggedIn onLogout={logout} /> : <LoggedOut />}
+      {identity ? (
+        <LoggedIn onLogout={logout} backend={backend} />
+      ) : (
+        <LoggedOut onLogin={login} />
+      )}
     </View>
   );
 }

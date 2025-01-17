@@ -1,53 +1,48 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Platform } from 'react-native';
 import { isSubdomainSupported } from '../isSubdomainSupported';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('react-native', () => {
-  let currentOS = 'web';
-  return {
-    Platform: {
-      get OS() {
-        return currentOS;
-      },
-      set OS(value) {
-        currentOS = value;
-      },
-    },
-  };
-});
+vi.mock('react-native', () => ({
+  Platform: {
+    OS: 'web',
+  },
+}));
 
 describe('isSubdomainSupported', () => {
-  const originalURL = global.URL;
+  const originalWindow = global.window;
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    global.URL = originalURL;
+  beforeEach(() => {
+    // Reset window object before each test
+    global.window = originalWindow;
   });
 
-  it('should return true when URL with subdomain is supported', () => {
-    // Ensure URL constructor doesn't throw for localhost subdomains
-    vi.spyOn(global, 'URL').mockImplementation((url) => {
-      return new originalURL(url);
-    });
+  it('should return false for iOS platform', () => {
+    vi.spyOn(Platform, 'OS', 'get').mockReturnValue('ios');
+    expect(isSubdomainSupported()).toBe(false);
+  });
 
+  it('should return false for Android platform', () => {
+    vi.spyOn(Platform, 'OS', 'get').mockReturnValue('android');
+    expect(isSubdomainSupported()).toBe(false);
+  });
+
+  it('should return false when accessed from IP address origin', () => {
+    vi.spyOn(Platform, 'OS', 'get').mockReturnValue('web');
+    global.window = {
+      location: {
+        origin: 'http://192.168.0.44:24943',
+      },
+    } as any;
+    expect(isSubdomainSupported()).toBe(false);
+  });
+
+  it('should return true when accessed from localhost and subdomain is supported', () => {
+    vi.spyOn(Platform, 'OS', 'get').mockReturnValue('web');
+    global.window = {
+      location: {
+        origin: 'http://localhost:24943',
+      },
+    } as any;
     expect(isSubdomainSupported()).toBe(true);
-  });
-
-  it('should return false when URL with subdomain is not supported', () => {
-    vi.spyOn(global, 'URL').mockImplementation(() => {
-      throw new Error('Invalid URL');
-    });
-
-    expect(isSubdomainSupported()).toBe(false);
-  });
-
-  it('should return false on iOS', () => {
-    Platform.OS = 'ios';
-    expect(isSubdomainSupported()).toBe(false);
-  });
-
-  it('should return false on Android', () => {
-    Platform.OS = 'android';
-    expect(isSubdomainSupported()).toBe(false);
   });
 });

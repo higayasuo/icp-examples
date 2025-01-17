@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
  * This function determines subdomain support based on the platform and environment.
  * Mobile platforms (iOS/Android) are considered to not support localhost subdomains
  * due to networking restrictions in mobile environments.
+ * When accessed from a web browser with IP address origin, subdomains are not supported.
  *
  * @returns {boolean} - True if subdomains are supported, false otherwise.
  */
@@ -13,6 +14,14 @@ export const isSubdomainSupported = (): boolean => {
   // Mobile platforms don't support localhost subdomains
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
     return false;
+  }
+
+  // Check if running in web environment
+  if (typeof window !== 'undefined') {
+    // If origin starts with IP address (192.168.), return false
+    if (window.location.origin.includes('192.168.')) {
+      return false;
+    }
   }
 
   // Only perform URL test in web environment

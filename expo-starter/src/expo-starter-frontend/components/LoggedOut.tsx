@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
 import {
   baseTextStyles,
   containerStyles,
@@ -11,15 +10,18 @@ import {
   buttonTextStyles,
 } from './styles';
 
-export default function LoggedOut() {
+interface LoggedOutProps {
+  onLogin: () => Promise<void>;
+}
+
+export default function LoggedOut({ onLogin }: LoggedOutProps) {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
-  const { login } = useAuth();
 
   function handlePress() {
     setBusy(true);
     setError(undefined); // Clear previous error
-    login()
+    onLogin()
       .catch((error) => {
         setError('Error occurred during login: ' + error.message);
       })
