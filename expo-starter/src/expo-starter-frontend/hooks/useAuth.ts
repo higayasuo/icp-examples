@@ -58,7 +58,8 @@ export function useAuth() {
         console.log('authenticated', authenticated);
 
         if (authenticated) {
-          setIdentity(authClient.getIdentity() as DelegationIdentity);
+          const identity = authClient.getIdentity() as DelegationIdentity;
+          setIdentity(identity);
           console.log('identity set from authClient');
         }
 
@@ -144,7 +145,8 @@ export function useAuth() {
       await authClient.login({
         identityProvider: iiUri,
         onSuccess: () => {
-          setIdentity(authClient.getIdentity() as DelegationIdentity);
+          const identity = authClient.getIdentity() as DelegationIdentity;
+          setIdentity(identity);
           console.log('identity set from authClient');
         },
       });
