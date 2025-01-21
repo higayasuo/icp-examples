@@ -1,4 +1,6 @@
 # How it works
+このドキュメントで、Expoアプリで、`Internet Identity`で認証し、`ICP`の`Backend`に接続する方法を学習します。
+中身が結構難しいので、最初に自然言語で内容を理解し、その後、コードを解説します。
 
 英語版は[こちら](how_it_works.md)です。
 

@@ -1,4 +1,6 @@
 # How it works
+This document explains how to authenticate with `Internet Identity` in an Expo app and connect to the `Backend` of `ICP`.
+Since the content is quite complex, we will first understand the concepts in natural language, and then explain the code.
 
 The Japanese version is available [here](how_it_works_ja.md).
 
