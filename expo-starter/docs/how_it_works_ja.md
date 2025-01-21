@@ -23,7 +23,7 @@ TypeScriptでInternet Identityを使うために、[公式のライブラリ: `@
 
 しかし、`auth-client`は、Expoでは動作しません。`auth-client`は、`window.postMessage()`を使用して、Internet IdentityのFrontendとやりとりしますが、Expoでは`window.postMessage()`がサポートされていないためです。Expoで利用できる`WebView`も同様の理由で動作しません。
 
-これに対する対策は、`auth-client`を使用するWeb Frontendを作成し、Expoから外部ブラウザ経由で呼び出します。Web Frontendでは、認証成功後、リダイレクトで認証されたDelegationIdentityをExpoアプリに返します。
+これに対する対策は、`auth-client`を使用するWeb Frontendを作成し、Expoから外部ブラウザ経由で呼び出します。Web Frontendでは、認証成功後、リダイレクトで認証情報であるDelegationIdentityをExpoアプリに返します。
 
 ### DelegationIdentityとは
 
@@ -319,7 +319,7 @@ const iiIntegrationURL = getCanisterURL(
 );
 const url = new URL(iiIntegrationURL);
 ```
-`getCanisterURL`は、先ほどの`getInternetIdentityURL`と非常によく似ていて、`Internet Identity`以外の`Canister`にアクセスするための`URL`を取得します。
+`getCanisterURL`は、先ほどの`getInternetIdentityURL`と非常によく似ていて、`Internet Identity`以外の`Canister`にアクセスするための`URL`を返します。
 
 ```typescript
 export const getCanisterURL = (canisterId: string): string => {
