@@ -28,7 +28,7 @@ TypeScriptでInternet Identityを使うために、[公式のライブラリ: `@
 ### DelegationIdentityとは
 
 `DelegationIdentity`は、アプリで署名する機能を持った`SignIdentity`と、ユーザーが署名する機能をアプリに委譲する`DelegationChain`で構成されています。
-`DelegationChain`は、ユーザーがアプリに署名する機能を委譲したことを証明する、証明書を持っています。
+`DelegationChain`は、ユーザーがアプリに署名する機能を委譲したことを証明する証明書を持っています。
 
 ICPのトランザクション(Tx)は、アプリが署名をします。ICPはTxの署名が正しいことを確認した後、`DelegationChain`の証明書を検証します。
 検証が成功したら、Txの真の実行者は、ユーザーとして認識されます。
@@ -51,7 +51,7 @@ Expoアプリでは、リダイレクトで受け取った`DelegationChain`と�
 
 Expoアプリでは、`SignIdentity`をセキュアなストレージ(`expo-secure-store`など)に保存します。
 `DelegationChain`は、通常のストレージ(`@react-native-async-storage/async-storage`など)に保存します。
-アプリを再起動したときに、`SignIdentity`と`DelegationChain`を読み込み、`DelegationIdentity`を作成すると良いでしょう。
+アプリを再起動したときに、`SignIdentity`と`DelegationChain`を読み込み、`DelegationIdentity`を復元すると良いでしょう。
 
 ### Backendに接続するActor
 
@@ -160,13 +160,12 @@ if (isDelegationValid(delegation)) {
 ```
 `delegation`が有効な場合、`identity`を`React`の`state`として保存します。
 `delegation`が有効でない場合、`delegation`を通常ストレージから削除します。
-
-`identity`のセットアップが完了したかを示しているのが`isReady`です。
-`identity`のセットアップが完了したら、`isReady`をtrueに更新します。
+`delegation`が有効でなくなる主な原因は、`delegation`の有効期限切れです。何も指定しない場合、有効期限は8時間です。
 
 ```typescript
 const [isReady, setIsReady] = useState(false);
 ```
+`identity`のセットアップが完了したかを示しているのが`isReady`です。
 `isReady`のために`React`の`state`を宣言します。
 
 ```typescript
@@ -203,9 +202,10 @@ url.searchParams.set('ii_uri', iiUri);
 await AsyncStorage.setItem('lastPath', pathname);
 await WebBrowser.openBrowserAsync(url.toString());
 ```
+長いコードなので、部分的に見ていきましょう。
 
 #### `redirectUri`の作成
-`redirectUri`とは、`ii-integration`が、`Internet Identity`に接続した後、Expoアプリにリダイレクトで戻ってくるためのURLです。
+`redirectUri`とは、`ii-integration`からExpoアプリにリダイレクトで戻ってくるためのURLです。
 
 ```typescript
 import { ..., createURL } from 'expo-linking';
@@ -268,19 +268,19 @@ export const getInternetIdentityURL = (): string => {
 
 `localhost subdomain`をサポートしていない場合、PCからアクセスする場合は、`http://localhost:4943/canisterId=<canisterId>`も可能なのですが、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`も同様に可能なので、話を単純化するために、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`を使用します。
 
-`isLocalhostSubdomainSupported()`は、すごく単純化すると、WebアプリのURLに`localhost`が含まれていて、ブラウザが`Chrome`の場合のみ、trueを返します。
+`isLocalhostSubdomainSupported()`は、すごく単純化すると、WebアプリがPCで動いていて、ブラウザが`Chrome`の場合のみ、trueを返します。
 
 Expoアプリで、PCのWebアプリ以外(ネイティブアプリ、スマホWebアプリ)は、`https:`で`Local Canister`にアクセスする必要があります。
 しかし、ICPの`Local Canister`は、`https:`をサポートしていません。
 そこで、`Proxy`を使用して、`https:`のリクエストを`http:`にフォワードします。
-今回のチュートリアルでは、`local-ssl-proxy`を使います。`package.json`に下記のエントリを書いて実行しておきます。
+このプロジェクトでは、`local-ssl-proxy`を使います。`package.json`に下記のエントリを書いて実行しておきます。
 
 ```json
-"ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 24943 --target 4943"
+"ssl:ii": "local-ssl-proxy --source 24943 --target 4943 --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem"
 ```
 `target`が`http:`のポート番号、`source`が`https:`のポート番号です。`mkcert`を使って、ルート局をインストールしたり、x509の証明書を作ったりする必要もあるのですが、これについては別のドキュメントで説明します。
 
-上記の設定で、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`は、`http://localhost:4943/canisterId=<canisterId>`にフォワードされます。
+上記の設定で、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`へのリクエストは、`http://localhost:4943/canisterId=<canisterId>`にフォワードされます。
 
 このチュートリアルでは、`24943`のポート番号を使っていますが、好きなポート番号を使って構いません。
 
@@ -301,14 +301,15 @@ export const isLocalhostSubdomainSupported = (): boolean => {
 ```
 `isLocalhostSubdomainSupported`を詳しく見ていきましょう。
 `window?.location?.origin`に`localhost`が含まれていない場合、`false`を返します。
-これにより、スマホからアクセスした場合は、`false`を返すことになります。
+これは、PCからアクセスしているWebアプリに限定することを意味します。
 
 `window?.navigator?.userAgent?.toLowerCase()`で、ブラウザのユーザーエージェントを取得します。
 `userAgent`に`chrome`が含まれている場合、`true`を返します。
 `userAgent`に`chrome`が含まれていない場合、`false`を返します。
 
-わかりやすく言い換えれば、PCのWebアプリで、`Chrome`のときだけ、`true`を返すことになります。
-これは、ExpoのWebアプリで、PCから`Local Canister`にアクセスするテストは、`Chorome`と`Safari`だけでとりあえずいいよねという前提に基づいています。
+わかりやすく言い換えれば、PCのWebアプリで、ブラウザが`Chrome`のときだけ、`true`を返すことになります。
+
+ExpoのWebアプリで、PCから`Local Canister`にアクセスするテストは、`Chorome`と`Safari`だけで良いとするなら、これくらいの簡易実装もありでしょう。
 
 #### `url`の作成
 この`url`は、`ii-integration`にアクセスする`URL`です。
@@ -338,17 +339,15 @@ export const getCanisterURL = (canisterId: string): string => {
 これは、`Internet Identity`とそれを呼び出す側(`ii-integration`)のオリジンが異なっている必要があるためです。
 
 #### クエリパラメータの設定
-先ほど作成した`url`に、`redirect_uri`、`pubkey`、`ii_uri`を設定します。
-
 ```typescript
 url.searchParams.set('redirect_uri', redirectUri);
 url.searchParams.set('pubkey', pubkey);
 url.searchParams.set('ii_uri', iiUri);
 ```
+先ほど作成した`url`に、`redirect_uri`、`pubkey`、`ii_uri`を設定します。
+
 
 #### 現在ページのパスの保存
-ログイン処理から戻ってきた時に、現在のページに戻れるように、`lastPath`として、現在のページのパスを保存します。
-
 ```typescript
 import { usePathname, ... } from 'expo-router';
 
@@ -356,12 +355,12 @@ const pathname = usePathname();
 
 await AsyncStorage.setItem('lastPath', pathname);
 ```
+ログイン処理から戻ってきた時に、現在のページに戻れるように、`lastPath`として、現在のページのパスを保存します。
 
 #### `ii-integration`の呼び出し
-先ほどの`url`を使って、`ii-integration`を呼び出します。
-
 ```typescript
 await WebBrowser.openBrowserAsync(url.toString());
 ```
+先ほどの`url`を使って、`ii-integration`を呼び出します。
 
 [useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
