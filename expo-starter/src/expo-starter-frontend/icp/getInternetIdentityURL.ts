@@ -1,8 +1,7 @@
 import { ENV_VARS } from './env.generated';
-import { getLocalCanisterSubdomainURL } from './getLocalCanisterSubdomainURL';
-import { isSubdomainSupported } from './isSubdomainSupported';
-
-const BASE_URL = 'https://192.168.0.44:24943/';
+import { getCanisterLocalhostSubdomainURL } from './getCanisterLocalhostSubdomainURL';
+import { isLocalhostSubdomainSupported } from './isLocalhostSubdomainSupported';
+import { HOST_ADDRESS } from './constants';
 
 /**
  * Get the Internet Identity URL based on the current environment.
@@ -16,9 +15,9 @@ export const getInternetIdentityURL = (): string => {
 
   const canisterId = ENV_VARS.CANISTER_ID_INTERNET_IDENTITY;
 
-  if (isSubdomainSupported()) {
-    return getLocalCanisterSubdomainURL(canisterId);
+  if (isLocalhostSubdomainSupported()) {
+    return getCanisterLocalhostSubdomainURL(canisterId);
   }
 
-  return `${BASE_URL}?canisterId=${canisterId}`;
+  return `https://${HOST_ADDRESS}:24943/?canisterId=${canisterId}`;
 };

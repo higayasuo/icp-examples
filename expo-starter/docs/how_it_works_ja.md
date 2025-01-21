@@ -53,3 +53,315 @@ Expoアプリでは、`SignIdentity`をセキュアなストレージ(`expo-secu
 `DelegationChain`は、通常のストレージ(`@react-native-async-storage/async-storage`など)に保存します。
 アプリを再起動したときに、`SignIdentity`と`DelegationChain`を読み込み、`DelegationIdentity`を作成すると良いでしょう。
 
+### Backendに接続するActor
+
+`Backend`に接続するActorを作成するため、`DelegationIdentity`を使用します。
+`Backend`のメソッドを呼び出すと、Actorが`DelegationIdentity`を使用して、Txに署名をして、ICPにTxを送信します。
+
+## コードで理解しよう - Native(iOS/Android)編
+
+今まで説明してきた内容をコードで理解しましょう。
+
+### Expoアプリの起動時
+
+#### `baseKey`のセットアップ
+`baseKey`とは、アプリ用の`SignIdentity`です。
+
+```typescript
+const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
+  undefined,
+);
+```
+`baseKey`のために`React`の`state`を宣言します。
+
+```typescript
+const storedBaseKey = await SecureStore.getItemAsync('baseKey');
+```
+セキュアなストレージから、`baseKey`を読み込みます。
+
+```typescript
+if (storedBaseKey) {
+  if (!baseKey) {
+    console.log('Restoring baseKey');
+    const key = Ed25519KeyIdentity.fromJSON(storedBaseKey);
+    setBaseKey(key);
+  }
+} else {
+  console.log('Generating new baseKey');
+  const key = Ed25519KeyIdentity.generate();
+  await SecureStore.setItemAsync('baseKey', JSON.stringify(key.toJSON()));
+  setBaseKey(key);
+}
+```
+ストレージに`baseKey`が存在し、`React`の`state`として、`baseKey`が存在しない場合、
+`baseKey`をJSONから復元して、`React`の`state`として保存します。
+`Ed25519KeyIdentity`は、`SignIdentity`の一種です。
+
+ストレージに`baseKey`が存在しない場合、新しい`Ed25519KeyIdentity`を生成し、
+セキュアなストレージと`React`の`state`に保存します。
+セキュアなストレージに保存するのは、`SignIdentity`の秘密鍵を保護するためです。
+
+#### `identity`のセットアップ
+`identity`とは、`DelegationIdentity`のことです。
+
+```typescript
+const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
+  undefined,
+);
+```
+`identity`のために`React`の`state`を宣言します。
+
+```typescript
+const storedDelegation = await AsyncStorage.getItem('delegation');
+```
+通常ストレージから、`delegation`を読み込みます。
+
+```typescript
+if (!identity && storedBaseKey && storedDelegation) {
+  const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
+  const delegation = DelegationChain.fromJSON(storedDelegation);
+  const identity = DelegationIdentity.fromDelegation(baseKey, delegation);
+
+  if (isDelegationValid(delegation)) {
+    console.log('Setting identity from baseKey and delegation');
+    setIdentity(identity);
+  } else {
+    console.log('Invalid delegation chain, removing delegation');
+    await AsyncStorage.removeItem('delegation');
+  }
+}
+
+setIsReady(true);
+```
+少しコードが長いので、部分的にコードを見ていきましょう。
+
+```typescript
+if (!identity && storedBaseKey && storedDelegation) {
+```
+`identity`が存在する場合は、何もしません。
+`identity`が存在しない場合は、保存されていた`baseKey`と`delegation`から、`identity`を復元します。
+
+```typescript
+const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
+const delegation = DelegationChain.fromJSON(storedDelegation);
+const identity = DelegationIdentity.fromDelegation(baseKey, delegation);
+```
+`baseKey`と`delegation`をJSONから復元します。
+`identity`を`baseKey`と`delegation`から復元します。
+
+```typescript
+if (isDelegationValid(delegation)) {
+  console.log('Setting identity from baseKey and delegation');
+  setIdentity(identity);
+} else {
+  console.log('Invalid delegation chain, removing delegation');
+  await AsyncStorage.removeItem('delegation');
+}
+```
+`delegation`が有効な場合、`identity`を`React`の`state`として保存します。
+`delegation`が有効でない場合、`delegation`を通常ストレージから削除します。
+
+`identity`のセットアップが完了したかを示しているのが`isReady`です。
+`identity`のセットアップが完了したら、`isReady`をtrueに更新します。
+
+```typescript
+const [isReady, setIsReady] = useState(false);
+```
+`isReady`のために`React`の`state`を宣言します。
+
+```typescript
+setIsReady(true);
+```
+`identity`のセットアップの最後に、`isReady`をtrueに更新します。
+
+[useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
+
+### Expoアプリでのログイン
+Expoアプリのログイン時にすることは、`Internet Identity`に接続する`Web Frontend`を外部ブラウザ経由で呼び出すことです。
+この`Web Frontend`を今後は、`ii-integration`と呼ぶことにします。
+
+```typescript
+const redirectUri = createURL('/');
+
+if (!baseKey) {
+  throw new Error('No base key');
+}
+
+const pubkey = toHex(baseKey.getPublicKey().toDer());
+
+const iiUri = getInternetIdentityURL();
+
+const iiIntegrationURL = getCanisterURL(
+  ENV_VARS.CANISTER_ID_II_INTEGRATION,
+);
+const url = new URL(iiIntegrationURL);
+
+url.searchParams.set('redirect_uri', redirectUri);
+url.searchParams.set('pubkey', pubkey);
+url.searchParams.set('ii_uri', iiUri);
+
+await AsyncStorage.setItem('lastPath', pathname);
+await WebBrowser.openBrowserAsync(url.toString());
+```
+
+#### `redirectUri`の作成
+`redirectUri`とは、`ii-integration`が、`Internet Identity`に接続した後、Expoアプリにリダイレクトで戻ってくるためのURLです。
+
+```typescript
+import { ..., createURL } from 'expo-linking';
+```
+`Expo`でカスタムURLを使う場合、`createURL`を使用して、カスタムURLを取得します。
+開発時に、`Expo Go`を使用する場合、カスタムURLは特殊なものになります。
+`createURL`は、開発時と本番ビルド時の違いを吸収してくれます。
+
+```typescript
+const redirectUri = createURL('/');
+```
+`createURL`を使用して、`redirectUri`を作成します。
+
+#### `pubkey`の作成
+`pubkey`とは、`baseKey`の公開鍵です。
+
+```typescript
+if (!baseKey) {
+  throw new Error('No base key');
+}
+
+const pubkey = toHex(baseKey.getPublicKey().toDer());
+```
+`baseKey`が存在しない場合、エラーを返します。
+`baseKey`の公開鍵を取得し、`toHex`で、16進数の文字列に変換します。
+
+#### `iiUri`の作成
+`iiUri`とは、`Internet Identity`のURLです。
+
+```typescript
+const iiUri = getInternetIdentityURL();
+```
+`getInternetIdentityURL`を使用して、`iiUri`を作成します。
+
+```typescript
+export const getInternetIdentityURL = (): string => {
+  if (ENV_VARS.DFX_NETWORK === 'ic') {
+    return 'https://identity.ic0.app';
+  }
+
+  const canisterId = ENV_VARS.CANISTER_ID_INTERNET_IDENTITY;
+
+  if (isLocalhostSubdomainSupported()) {
+    return getCanisterLocalhostSubdomainURL(canisterId);
+  }
+
+  return `https://${HOST_ADDRESS}:24943/?canisterId=${canisterId}`;
+};
+```
+`ENV_VARS`は、`dfx deploy`時に作成される`.env`ファイルをタイプセーフに扱うことができるようにしたものです。
+`dfx deploy`時に、自動的に作成されます。標準では作成されないので、どのように作成するのかは、別のドキュメントで解説します。
+
+`DFX_NETWORK`は、`dfx deploy`時に指定したネットワークです。`ic`の場合、`Internet Identity`のURLは、`https://identity.ic0.app`になります。
+`ic`以外の時は、`CANISTER_ID_INTERNET_IDENTITY`を使用して、`Internet Identity`のcanisterIdを取得します。
+`canisterId`は、`canister`につけられている`ID`です。`canister`というのは、他のチェーンのスマートコントラクトだと理解しておくといいでしょう。
+
+`isLocalhostSubdomainSupported()`は、ブラウザが、`localhost subdomain`をサポートしているかを返します。
+`localhost subdomain`をサポートしている場合、URLは、`http://<canisterId>.localhost:4943`になります。
+`localhost subdomain`をサポートしていない場合、URLは、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`のようになります。
+
+`localhost subdomain`をサポートしていない場合、PCからアクセスする場合は、`http://localhost:4943/canisterId=<canisterId>`も可能なのですが、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`も同様に可能なので、話を単純化するために、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`を使用します。
+
+`isLocalhostSubdomainSupported()`は、すごく単純化すると、WebアプリのURLに`localhost`が含まれていて、ブラウザが`Chrome`の場合のみ、trueを返します。
+
+Expoアプリで、PCのWebアプリ以外(ネイティブアプリ、スマホWebアプリ)は、`https:`で`Local Canister`にアクセスする必要があります。
+しかし、ICPの`Local Canister`は、`https:`をサポートしていません。
+そこで、`Proxy`を使用して、`https:`のリクエストを`http:`にフォワードします。
+今回のチュートリアルでは、`local-ssl-proxy`を使います。`package.json`に下記のエントリを書いて実行しておきます。
+
+```json
+"ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 24943 --target 4943"
+```
+`target`が`http:`のポート番号、`source`が`https:`のポート番号です。`mkcert`を使って、ルート局をインストールしたり、x509の証明書を作ったりする必要もあるのですが、これについては別のドキュメントで説明します。
+
+上記の設定で、`https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>`は、`http://localhost:4943/canisterId=<canisterId>`にフォワードされます。
+
+このチュートリアルでは、`24943`のポート番号を使っていますが、好きなポート番号を使って構いません。
+
+```typescript
+export const isLocalhostSubdomainSupported = (): boolean => {
+  if (!window?.location?.origin?.includes('localhost')) {
+    return false;
+  }
+
+  const userAgent = window?.navigator?.userAgent?.toLowerCase() || '';
+
+  if (userAgent.includes('chrome')) {
+    return true;
+  }
+
+  return false;
+};
+```
+`isLocalhostSubdomainSupported`を詳しく見ていきましょう。
+`window?.location?.origin`に`localhost`が含まれていない場合、`false`を返します。
+これにより、スマホからアクセスした場合は、`false`を返すことになります。
+
+`window?.navigator?.userAgent?.toLowerCase()`で、ブラウザのユーザーエージェントを取得します。
+`userAgent`に`chrome`が含まれている場合、`true`を返します。
+`userAgent`に`chrome`が含まれていない場合、`false`を返します。
+
+わかりやすく言い換えれば、PCのWebアプリで、`Chrome`のときだけ、`true`を返すことになります。
+これは、ExpoのWebアプリで、PCから`Local Canister`にアクセスするテストは、`Chorome`と`Safari`だけでとりあえずいいよねという前提に基づいています。
+
+#### `url`の作成
+この`url`は、`ii-integration`にアクセスする`URL`です。
+
+```typescript
+const iiIntegrationURL = getCanisterURL(
+  ENV_VARS.CANISTER_ID_II_INTEGRATION,
+);
+const url = new URL(iiIntegrationURL);
+```
+`getCanisterURL`は、先ほどの`getInternetIdentityURL`と非常によく似ていて、`Internet Identity`以外の`Canister`にアクセスするための`URL`を取得します。
+
+```typescript
+export const getCanisterURL = (canisterId: string): string => {
+  if (ENV_VARS.DFX_NETWORK === 'ic') {
+    return `https://${canisterId}.ic0.app`;
+  }
+
+  if (isLocalhostSubdomainSupported()) {
+    return getCanisterLocalhostSubdomainURL(canisterId);
+  }
+
+  return `https://${HOST_ADDRESS}:14943/?canisterId=${canisterId}`;
+};
+```
+先ほどの`getInternetIdentityURL`とかなり似ているので、細かい説明は省きますが、ポート番号が`getInternetIdentityURL`のポート番号とは異なることは頭に入れておいてください。
+これは、`Internet Identity`とそれを呼び出す側(`ii-integration`)のオリジンが異なっている必要があるためです。
+
+#### クエリパラメータの設定
+先ほど作成した`url`に、`redirect_uri`、`pubkey`、`ii_uri`を設定します。
+
+```typescript
+url.searchParams.set('redirect_uri', redirectUri);
+url.searchParams.set('pubkey', pubkey);
+url.searchParams.set('ii_uri', iiUri);
+```
+
+#### 現在ページのパスの保存
+ログイン処理から戻ってきた時に、現在のページに戻れるように、`lastPath`として、現在のページのパスを保存します。
+
+```typescript
+import { usePathname, ... } from 'expo-router';
+
+const pathname = usePathname();
+
+await AsyncStorage.setItem('lastPath', pathname);
+```
+
+#### `ii-integration`の呼び出し
+先ほどの`url`を使って、`ii-integration`を呼び出します。
+
+```typescript
+await WebBrowser.openBrowserAsync(url.toString());
+```
+
+[useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)

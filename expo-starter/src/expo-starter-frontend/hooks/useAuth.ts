@@ -68,7 +68,6 @@ export function useAuth() {
       }
 
       const storedBaseKey = await SecureStore.getItemAsync('baseKey');
-      const storedDelegation = await AsyncStorage.getItem('delegation');
 
       if (storedBaseKey) {
         if (!baseKey) {
@@ -83,19 +82,16 @@ export function useAuth() {
         setBaseKey(key);
       }
 
-      if (!identity && storedBaseKey && storedDelegation) {
-        const delegationChain = DelegationChain.fromJSON(
-          JSON.parse(storedDelegation),
-        );
+      const storedDelegation = await AsyncStorage.getItem('delegation');
 
-        if (isDelegationValid(delegationChain)) {
-          const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
-          const id = DelegationIdentity.fromDelegation(
-            baseKey,
-            delegationChain,
-          );
+      if (!identity && storedBaseKey && storedDelegation) {
+        const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
+        const delegation = DelegationChain.fromJSON(storedDelegation);
+        const identity = DelegationIdentity.fromDelegation(baseKey, delegation);
+
+        if (isDelegationValid(delegation)) {
           console.log('Setting identity from baseKey and delegation');
-          setIdentity(id);
+          setIdentity(identity);
         } else {
           console.log('Invalid delegation chain, removing delegation');
           await AsyncStorage.removeItem('delegation');
@@ -153,24 +149,26 @@ export function useAuth() {
       return;
     }
 
+    const redirectUri = createURL('/');
+
     if (!baseKey) {
       throw new Error('No base key');
     }
 
-    await AsyncStorage.setItem('lastPath', pathname);
+    const pubkey = toHex(baseKey.getPublicKey().toDer());
 
-    const derKey = toHex(baseKey.getPublicKey().toDer());
+    const iiUri = getInternetIdentityURL();
+
     const iiIntegrationURL = getCanisterURL(
       ENV_VARS.CANISTER_ID_II_INTEGRATION,
     );
     const url = new URL(iiIntegrationURL);
-    const redirectUri = createURL('/');
-    const iiUri = getInternetIdentityURL();
 
     url.searchParams.set('redirect_uri', redirectUri);
-    url.searchParams.set('pubkey', derKey);
+    url.searchParams.set('pubkey', pubkey);
     url.searchParams.set('ii_uri', iiUri);
 
+    await AsyncStorage.setItem('lastPath', pathname);
     await WebBrowser.openBrowserAsync(url.toString());
   };
 

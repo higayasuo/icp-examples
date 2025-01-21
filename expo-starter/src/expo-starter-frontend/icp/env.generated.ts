@@ -1,7 +1,10 @@
 // This file is auto-generated. Do not edit directly.
 // Generated from env.txt by dfx deploy
 
-export const ENV_VARS: Record<string, string> = {
+type DFXNetwork = 'ic' | 'local';
+
+export const ENV_VARS = {
+  ...{
   "DFX_VERSION": "0.24.3",
   "DFX_NETWORK": "local",
   "CANISTER_CANDID_PATH_INTERNET_IDENTITY": "/Users/higayasuo/dev/icp/icp-examples/expo-starter/deps/candid/rdmx6-jaaaa-aaaaa-aaadq-cai.did",
@@ -12,4 +15,6 @@ export const ENV_VARS: Record<string, string> = {
   "CANISTER_ID_EXPO_STARTER_BACKEND": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
   "CANISTER_ID": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
   "CANISTER_CANDID_PATH": "/Users/higayasuo/dev/icp/icp-examples/expo-starter/src/expo-starter-backend/expo-starter-backend.did"
+},
+  DFX_NETWORK: "local" as DFXNetwork
 } as const;

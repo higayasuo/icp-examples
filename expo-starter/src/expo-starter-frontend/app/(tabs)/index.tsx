@@ -10,11 +10,6 @@ export default function TabOneScreen() {
 
   const backend = identity ? createBackend(identity) : undefined;
 
-  // Track identity changes
-  useEffect(() => {
-    console.log('TabOneScreen: identity changed', { hasIdentity: !!identity });
-  }, [identity]);
-
   if (!isReady) {
     console.log('TabOneScreen: Not ready');
     return undefined;
