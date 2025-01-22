@@ -366,3 +366,152 @@ await WebBrowser.openBrowserAsync(url.toString());
 先ほどの`url`を使って、`ii-integration`を呼び出します。
 
 [useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
+
+### `ii-integration`の起動時
+```typescript
+try {
+  const { redirectUri, identity, iiUri } = parseParams();
+  const authClient = await AuthClient.create({ identity });
+  const loginButton = document.querySelector('#ii-login-button') as HTMLButtonElement;
+
+  loginButton.addEventListener('click', async () => {
+    renderError('');
+    try {
+      await authClient.login({
+        identityProvider: iiUri,
+        onSuccess: () => {
+          try {
+            const delegationIdentity = authClient.getIdentity() as DelegationIdentity;
+            const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
+            window.location.href = url;
+          } catch (error) {
+            renderError(formatError('delegation retrieval failed', error));
+          }
+        },
+        onError: (error?: string) => {
+          renderError(formatError('authentication rejected', error || 'Unknown error'));
+        },
+      });
+    } catch (error) {
+      renderError(formatError('login process failed', error));
+    }
+  });
+} catch (error) {
+  renderError(formatError('initialization failed', error));
+}
+```
+コードが長いので、部分的にコードを見ていきましょう。
+
+#### 前準備
+```typescript
+const { redirectUri, identity, iiUri } = parseParams();
+```
+`parseParams`は、`ii-integration`のURLから、`redirectUri`、`identity`、`iiUri`を取得します。
+
+```typescript
+interface ParsedParams {
+  redirectUri: string;
+  identity: SignIdentity;
+  iiUri: string;
+}
+
+const parseParams = (): ParsedParams => {
+  const url = new URL(window.location.href);
+  const redirectUri = url.searchParams.get('redirect_uri');
+  const pubKey = url.searchParams.get('pubkey');
+  const iiUri = url.searchParams.get('ii_uri');
+
+  if (!redirectUri || !pubKey || !iiUri) {
+    const error = new Error('Missing redirect_uri, pubkey, or ii_uri in query string');
+    renderError(error.message);
+    throw error;
+  }
+
+  const identity = new PublicKeyOnlyIdentity(
+    Ed25519PublicKey.fromDer(fromHex(pubKey)),
+  );
+
+  return { redirectUri, identity, iiUri };
+}
+```
+`URL`から、`redirectUri`、`pubkey`、`iiUri`を取得します。
+
+`redirectUri`は、`ii-integration`からExpoアプリにリダイレクトで戻るためのURLです。
+
+`pubkey`は、Expoアプリの`baseKey`の公開鍵です。
+
+`iiUri`は、`Internet Identity`のURLです。
+
+```typescript
+class PublicKeyOnlyIdentity extends SignIdentity {
+  #publicKey: PublicKey;
+
+  constructor(publicKey: PublicKey) {
+    super();
+    this.#publicKey = publicKey;
+  }
+
+  getPublicKey(): PublicKey {
+    return this.#publicKey;
+  }
+
+  async sign(blob: ArrayBuffer): Promise<Signature> {
+    throw new Error('Cannot sign with public key only identity');
+  }
+}
+```
+通常、`SignIdentity`は、公開鍵と秘密鍵を持っていますが、`Internet Identity`の認証で必要になるのは、`getPublicKey()`だけなので、このような簡易実装でも問題ありません。
+
+```typescript
+const authClient = await AuthClient.create({ identity });
+```
+`identity`を渡して`AuthClient`を作成します。
+`identity`の公開鍵はExpoアプリのものなので、これにより、ユーザーが署名することをExpoアプリに委譲できるようになります。
+
+```typescript
+const loginButton = document.querySelector('#ii-login-button') as HTMLButtonElement;
+```
+`ii-login-button`という`ID`のボタンを取得します。
+
+#### `authClient.login()`
+```typescript
+authClient.login({
+  identityProvider: iiUri,
+  onSuccess: () => {
+    try {
+      const delegationIdentity = authClient.getIdentity() as DelegationIdentity;
+      const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
+      window.location.href = url;
+    } catch (error) {
+      renderError(formatError('delegation retrieval failed', error));
+    }
+  },
+  onError: (error?: string) => {
+    renderError(formatError('authentication rejected', error || 'Unknown error'));
+  },
+});
+```
+`identityProvider`には、`Internet Identity`のURLを渡します。
+`onSuccess`は、認証が成功した場合に呼ばれる関数です。
+`onError`は、認証が失敗した場合に呼ばれる関数です。
+
+認証が成功すると、`authClient.getIdentity()`で、`DelegationIdentity`を取得できます。
+`buildRedirectURLWithDelegation`は、`DelegationIdentity`を使って、`redirectUri`に委譲情報を付与したURLを作成します。
+`window.location.href`に、そのURLを設定することで、Expoアプリにリダイレクトで戻ります。
+
+```typescript
+const buildRedirectURLWithDelegation = (redirectUri: string, delegationIdentity: DelegationIdentity): string => {
+  const delegationString = JSON.stringify(
+    delegationIdentity.getDelegation().toJSON()
+  );
+  const encodedDelegation = encodeURIComponent(delegationString);
+  return `${redirectUri}?delegation=${encodedDelegation}`;
+};
+```
+`DelegationIdentity.getDelegation()`で、`DelegationChain`を取得できます。
+`DelegationChain`は、ユーザーの公開鍵と、ユーザーがExpoアプリに署名することを委譲した証明書を持っています。
+`DelegationChain`は、セキュアな情報を持っていないので、リダイレクトでExpoアプリに渡すことができます。
+
+これで、`ii-integration`からExpoアプリにリダイレクトで`DelegationIdentity`を渡す仕組みが理解できましたね。
+
+[ii-integrationのソースコード](../src/ii-integration/index.ts)

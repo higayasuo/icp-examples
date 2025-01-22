@@ -1,3 +1,15 @@
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _PublicKeyOnlyIdentity_publicKey;
 import { SignIdentity, fromHex, } from "@dfinity/agent";
 import { AuthClient } from "@dfinity/auth-client";
 import { Ed25519PublicKey } from "@dfinity/identity";
@@ -43,7 +55,6 @@ const main = async () => {
                     identityProvider: iiUri,
                     onSuccess: () => {
                         try {
-                            renderError("");
                             const delegationIdentity = authClient.getIdentity();
                             const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
                             window.location.href = url;
@@ -69,15 +80,17 @@ const main = async () => {
 class PublicKeyOnlyIdentity extends SignIdentity {
     constructor(publicKey) {
         super();
-        this._publicKey = publicKey;
+        _PublicKeyOnlyIdentity_publicKey.set(this, void 0);
+        __classPrivateFieldSet(this, _PublicKeyOnlyIdentity_publicKey, publicKey, "f");
     }
     getPublicKey() {
-        return this._publicKey;
+        return __classPrivateFieldGet(this, _PublicKeyOnlyIdentity_publicKey, "f");
     }
     async sign(blob) {
         throw new Error("Cannot sign with incomplete identity");
     }
 }
+_PublicKeyOnlyIdentity_publicKey = new WeakMap();
 window.addEventListener("DOMContentLoaded", () => {
     main();
 });
