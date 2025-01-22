@@ -4,12 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-itunes-app" content="app-id=6473462222" />
-    <title>Document</title>
+    <title>II Login</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding-top: 4rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        h1 {
+            margin-bottom: 2rem;
+        }
+
+        #ii-login-button {
+            font-size: 1.25rem;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            border: none;
+            background-color: #222;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #ii-login-button:hover {
+            background-color: #444;
+        }
+
+        #error {
+            color: red;
+            display: none;
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body>
-    <h1>Internet Identity</h1>
-    <ii-login-button></ii-login-button>
-    <div id="error-container"></div>
+    <h1>Internet Identity Login</h1>
+    <button id="ii-login-button">Login with Internet Identity</button>
+    <div id="error-container">
+        <p id="error"></p>
+    </div>
     <script type="module" src="./index.ts"></script>
 </body>
 </html>

@@ -2,107 +2,25 @@ import {
   SignIdentity,
   fromHex,
   Signature,
+  PublicKey,
 }
   from "@dfinity/agent";
-import { Ed25519PublicKey } from "@dfinity/identity";
-import { defineElement, IILoginButton } from "@dfinity/ii-login-button";
+import { AuthClient } from "@dfinity/auth-client";
+import { DelegationIdentity, Ed25519PublicKey } from "@dfinity/identity";
 
-async function main(): Promise<void> {
-  console.log('Starting main function');
-  // initialize the login button
-  defineElement();
+const formatError = (prefix: string, error: unknown): string => {
+  return `Internet Identity ${prefix}: ${error instanceof Error ? error.message : String(error)}`;
+};
 
-  const loginButton = document.querySelector("ii-login-button") as IILoginButton;
-  console.log('Login button found:', loginButton);
-
-  loginButton.addEventListener("ready", () => {
-    console.log('Login button ready event fired');
-    try {
-      const { redirectUri, identity, iiUri } = parseParams();
-      console.log('Parsed params:', {
-        redirectUri,
-        identity: identity ? 'Identity present' : 'No identity',
-        iiUri
-      });
-
-      loginButton.configure({
-        createOptions: {
-          identity,
-        },
-        loginOptions: {
-          identityProvider: iiUri,
-          windowOpenerFeatures:
-            "toolbar=0,location=0,menubar=0,width=500,height=500,left=100,top=100",
-          onSuccess: () => {
-            console.log('Login success callback triggered');
-            console.log('iiUri:', iiUri);
-            const loginButton = document.querySelector("ii-login-button") as IILoginButton;
-            const delegationIdentity = loginButton.identity;
-            console.log('Delegation identity:', delegationIdentity ? 'Present' : 'Not present');
-
-            if (!delegationIdentity) {
-              throw new Error("No delegation identity found");
-            }
-
-            // Type assertion as any to bypass the type check
-            const delegation = (delegationIdentity as any).getDelegation();
-            console.log('Delegation obtained:', delegation ? 'Present' : 'Not present');
-            const delegationString = JSON.stringify(
-              delegation.toJSON()
-            );
-            console.log('Delegation JSON created');
-
-            const encodedDelegation = encodeURIComponent(delegationString);
-            const url = `${redirectUri}?delegation=${encodedDelegation}`;
-            console.log(`Prepared redirect URL: ${url}`);
-
-            loginButton.style.display = "none";
-
-            const button = document.createElement("button");
-            button.innerText = "Continue";
-            button.style.fontSize = "20px";
-            button.style.padding = "10px 20px";
-            button.addEventListener("click", () => {
-              console.log('Continue button clicked, redirecting...');
-              window.open(url, "_self");
-              window.close();
-            });
-            document.body.appendChild(button);
-
-            window.open(url, "_self");
-            window.close();
-          },
-          onError: (error?: string) => {
-            console.log('Login error callback triggered:', error);
-            renderError(new Error(error || "Unknown error"));
-          },
-        },
-      });
-      console.log('Login button configured');
-    } catch (error) {
-      console.error('Error in ready event handler:', error);
-      if (error instanceof Error) {
-        renderError(error);
-      }
-    }
-  });
-}
-
-class IncompleteEd25519KeyIdentity extends SignIdentity {
-  private _publicKey: Ed25519PublicKey;
-
-  constructor(publicKey: Ed25519PublicKey) {
-    super();
-    this._publicKey = publicKey;
+const renderError = (message: string): void => {
+  const errorElement = document.querySelector("#error") as HTMLParagraphElement;
+  if (!errorElement) {
+    console.error("Error element not found");
+    return;
   }
 
-  getPublicKey(): Ed25519PublicKey {
-    return this._publicKey;
-  }
-
-  async sign(blob: ArrayBuffer): Promise<Signature> {
-    throw new Error("Cannot sign with incomplete identity");
-  }
+  errorElement.textContent = message;
+  errorElement.style.display = message ? "block" : "none";
 }
 
 interface ParsedParams {
@@ -111,7 +29,7 @@ interface ParsedParams {
   iiUri: string;
 }
 
-function parseParams(): ParsedParams {
+const parseParams = (): ParsedParams => {
   const url = new URL(window.location.href);
   const redirectUri = url.searchParams.get("redirect_uri") || "";
   const pubKey = url.searchParams.get("pubkey");
@@ -119,36 +37,76 @@ function parseParams(): ParsedParams {
 
   if (!redirectUri || !pubKey || !iiUri) {
     const error = new Error("Missing redirect_uri, pubkey, or ii_uri in query string");
-    renderError(error);
+    renderError(error.message);
     throw error;
   }
 
-  const identity = new IncompleteEd25519KeyIdentity(
+  const identity = new PublicKeyOnlyIdentity(
     Ed25519PublicKey.fromDer(fromHex(pubKey))
   );
 
   return { redirectUri, identity, iiUri };
 }
 
+const buildRedirectURLWithDelegation = (redirectUri: string, delegationIdentity: DelegationIdentity): string => {
+  const delegationString = JSON.stringify(
+    delegationIdentity.getDelegation().toJSON()
+  );
+  const encodedDelegation = encodeURIComponent(delegationString);
+  return `${redirectUri}?delegation=${encodedDelegation}`;
+};
+
+const main = async (): Promise<void> => {
+  try {
+    const { redirectUri, identity, iiUri } = parseParams();
+    const authClient = await AuthClient.create({ identity });
+    const loginButton = document.querySelector("#ii-login-button") as HTMLButtonElement;
+
+    loginButton.addEventListener("click", async () => {
+      renderError("");
+      try {
+        await authClient.login({
+          identityProvider: iiUri,
+          onSuccess: () => {
+            try {
+              renderError("");
+              const delegationIdentity = authClient.getIdentity() as DelegationIdentity;
+              const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
+              window.location.href = url;
+            } catch (error) {
+              renderError(formatError("delegation retrieval failed", error));
+            }
+          },
+          onError: (error?: string) => {
+            renderError(formatError("authentication rejected", error || "Unknown error"));
+          },
+        });
+      } catch (error) {
+        renderError(formatError("login process failed", error));
+      }
+    });
+  } catch (error) {
+    renderError(formatError("initialization failed", error));
+  }
+}
+
+class PublicKeyOnlyIdentity extends SignIdentity {
+  private _publicKey: PublicKey;
+
+  constructor(publicKey: PublicKey) {
+    super();
+    this._publicKey = publicKey;
+  }
+
+  getPublicKey(): PublicKey {
+    return this._publicKey;
+  }
+
+  async sign(blob: ArrayBuffer): Promise<Signature> {
+    throw new Error("Cannot sign with incomplete identity");
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   main();
 });
-
-export function renderError(error: Error): void {
-  const errorContainer = document.querySelector("#error-container");
-  if (!errorContainer) {
-    console.error("Error container not found");
-    return;
-  }
-
-  const existingError = document.querySelector("#error");
-  if (existingError) {
-    existingError.remove();
-  }
-
-  const errorText = document.createElement("p");
-  errorText.style.color = "red";
-  errorText.id = "error";
-  errorText.innerText = error.message;
-  errorContainer.appendChild(errorText);
-}

@@ -11,7 +11,6 @@ export default function TabOneScreen() {
   const backend = identity ? createBackend(identity) : undefined;
 
   if (!isReady) {
-    console.log('TabOneScreen: Not ready');
     return undefined;
   }
 
