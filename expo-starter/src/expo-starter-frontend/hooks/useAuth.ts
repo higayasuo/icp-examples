@@ -28,6 +28,17 @@ const navigate = (path: string) => {
   }
 };
 
+const restorePreLoginScreen = async () => {
+  const path = await AsyncStorage.getItem('lastPath');
+
+  if (path) {
+    navigate(path);
+    await AsyncStorage.removeItem('lastPath');
+  } else {
+    router.replace('/');
+  }
+};
+
 export function useAuth() {
   const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
     undefined,
@@ -112,22 +123,13 @@ export function useAuth() {
     const delegation = search.get('delegation');
 
     if (delegation) {
-      console.log('delegation exists in URL');
       const chain = DelegationChain.fromJSON(JSON.parse(delegation));
       AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
       const id = DelegationIdentity.fromDelegation(baseKey, chain);
       setIdentity(id);
       console.log('set identity from delegation');
       WebBrowser.dismissBrowser();
-
-      AsyncStorage.getItem('lastPath').then((path) => {
-        if (path) {
-          navigate(path);
-          AsyncStorage.removeItem('lastPath');
-        } else {
-          router.replace('/');
-        }
-      });
+      restorePreLoginScreen();
     }
   }, [url, baseKey]);
 

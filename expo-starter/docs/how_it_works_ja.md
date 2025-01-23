@@ -515,3 +515,56 @@ const buildRedirectURLWithDelegation = (redirectUri: string, delegationIdentity:
 これで、`ii-integration`からExpoアプリにリダイレクトで`DelegationIdentity`を渡す仕組みが理解できましたね。
 
 [ii-integrationのソースコード](../src/ii-integration/index.ts)
+
+### `ii-integration`からExpoアプリに戻ってきた時
+#### URLの取得
+```typescript
+const url = useURL();
+```
+`useURL`は、Expoアプリの`url`を取得するためのフックです。
+
+#### `delegation`の取得
+```typescript
+const search = new URLSearchParams(url?.split('?')[1]);
+const delegation = search.get('delegation');
+```
+`url`から、`delegation`を取得します。
+
+#### `delegation`から`DelegationIdentity`を作成
+```typescript
+if (delegation) {
+  const chain = DelegationChain.fromJSON(JSON.parse(delegation));
+  AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
+  const id = DelegationIdentity.fromDelegation(baseKey, chain);
+  setIdentity(id);
+  console.log('set identity from delegation');
+  WebBrowser.dismissBrowser();
+  restorePreLoginScreen();
+}
+```
+この`hooks`は、`url`と`baseKey`が変化した時に呼び出されるため、常に`URL`に`delegation`パラメータが含まれているとは限りません。
+そのため、`delegation`パラメータがある時のみ後続の処理を行います。
+
+JSON文字列から、`chain`として`DelegationChain`を復元し、保存します。
+`baseKey`と`chain`から、`DelegationIdentity`を作成し、`setIdentity`で保存します。
+
+`WebBrowser.dismissBrowser()`で、`ii-integration`を閉じます。
+
+`restorePreLoginScreen()`で、ログイン前の画面に戻します。
+
+```typescript
+const restorePreLoginScreen = async () => {
+  const path = await AsyncStorage.getItem('lastPath');
+  if (path) {
+    navigate(path);
+    await AsyncStorage.removeItem('lastPath');
+  } else {
+    router.replace('/');
+  }
+};
+```
+`AsyncStorage`から、`lastPath`を取得します。
+`lastPath`がある場合、そのパスに戻ります。
+`lastPath`がない場合、`router.replace('/')`で、ルート画面に戻ります。
+
+[useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
