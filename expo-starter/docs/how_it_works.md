@@ -18,69 +18,97 @@ The Internet Identity Frontend is provided as a [web application](https://identi
 
 ## Tips for Using Internet Identity with Expo
 
-### @dfinity/auth-client Not Working with Expo
+### Internet Identity Not Working with Expo
 
 - Reason for not working:
-  - Official @dfinity/auth-client uses window.postMessage()
+  - Internet Identity uses window.postMessage() for authentication
   - window.postMessage() is not supported in Expo
 
 #### Solution
 
-- Authentication Flow Implementation:
-  1. In Expo App:
-     - Generate SignIdentity (public-private key pair)
-     - Launch Web Frontend in external browser
-     - Pass the generated public key to Web Frontend
+Authentication flow is implemented by separating authentication process to Web Frontend:
 
-  2. In Web Frontend:
-     - Use received public key
-     - Execute Internet Identity authentication
-     - Return DelegationChain to Expo app after successful authentication
+1. In Expo App:
+  - Generate SignIdentity (public-private key pair)
+  - Launch Web Frontend in external browser
+  - Pass the generated public key to Web Frontend
 
-  3. In Expo App:
-     - Combine SignIdentity with DelegationChain
-     - Generate DelegationIdentity to complete authentication
+2. In Web Frontend:
+  - Use public key received from Expo app
+  - Execute Internet Identity authentication
+  - Get DelegationChain after successful authentication
+  - Return DelegationChain to Expo app via redirect
 
-#### Communication Method
+3. Authentication Completion Process in Expo App:
+  - Generate DelegationIdentity by combining SignIdentity and DelegationChain
 
-- Communication between external browser and Expo app via redirect
-- Only DelegationChain is transferred for authentication information
+#### DelegationChain Characteristics
+- Contains user's public key
+- Contains certificate for signature authority delegation
 
-### What is DelegationIdentity?
+#### Communication Mechanism
+- Communication between external browser and Expo app uses redirect
+- Authentication information transfer limited to DelegationChain only (private key not transferred)
 
-`DelegationIdentity` is an authentication system consisting of the following two elements:
-- `SignIdentity`: Provides the ability to sign transactions.
-- `DelegationChain`: A certificate that proves the delegation of signing authority from the user to the app.
+### Structure and Mechanism of DelegationIdentity
 
-Flow of ICP transaction (Tx) processing:
-1. The app signs the Tx.
-2. ICP first verifies the `DelegationChain` certificate.
-3. After verifying the certificate, ICP verifies the Tx with the delegated app's public key.
-4. If all verifications are successful, the Tx is processed as executed by the user.
+DelegationIdentity is a mechanism that allows apps to sign transactions while maintaining the user as the transaction owner.
 
-The `SignIdentity` included in `DelegationIdentity` has a private key for signing. Therefore, returning the `DelegationIdentity` itself to the Expo app via redirect should not be done for security reasons.
+#### Components
+- SignIdentity: Holds the private key and provides transaction signing functionality
+- DelegationChain: Contains certificates proving the delegation of signing authority from users to applications
 
-### How to Handle DelegationIdentity Securely
+#### Transaction Processing Flow
 
-#### Basic Flow
+1. Application Side:
+  - Performs transaction signing
+  - Sends transaction to ICP
 
-**Preparation in Expo App**
-- Create SignIdentity
-- Extract public key from the created SignIdentity
-- Transfer the extracted public key to Web Frontend
+2. ICP Verification Process:
+  - Verifies the certificates in DelegationChain
+  - Retrieves delegated app's public key from DelegationChain
+  - Verifies transaction signature using app's public key
 
-**Processing in Web Frontend**
-- Generate SignIdentity without signing capability from received public key
-- Pass this SignIdentity to auth-client
-- After Internet Identity authentication, obtain DelegationIdentity without signing capability
-- Extract DelegationChain and redirect to Expo app
+3. Transaction Execution:
+  - After all verifications succeed, executes the transaction as a legitimate user operation
 
-**Final Stage (Expo App)**
-- Combine DelegationChain received via redirect with
-- Initially created SignIdentity to
-- Generate complete DelegationIdentity
+### Storing DelegationIdentity
 
-#### Security Considerations
+- Elements to store:
+  - SignIdentity: Store in secure storage (expo-secure-store)
+    - Reason: Contains sensitive information including private key
+  - DelegationChain: Store in regular storage (@react-native-async-storage/async-storage)
+    - Reason: Contains no confidential information
 
-Since DelegationChain only contains public information, it is safe to transfer via redirect. This method enables secure creation of DelegationIdentity with signing capabilities.
+#### DelegationIdentity Recovery Process on Restart
+
+1. Loading from Storage:
+  - Load SignIdentity from secure storage
+  - Load DelegationChain from regular storage
+
+2. DelegationIdentity Generation:
+  - Create DelegationIdentity by combining the loaded SignIdentity and DelegationChain
+
+### Actor Connecting to Backend
+
+An Actor connecting to the Backend operates with DelegationIdentity as follows:
+
+#### Process Flow
+
+1. Actor Operation:
+  - Receives Backend method calls
+  - Signs transactions using DelegationIdentity
+  - Sends signed transactions to ICP
+
+2. ICP Processing:
+  - Verifies DelegationChain certificates
+  - Retrieves delegated app's public key from DelegationChain
+  - Verifies transaction signature using app's public key
+  - After verification, executes transaction as user operation
+
+#### Key Points
+
+- App signs transactions, but execution is processed as user operation
+- DelegationChain proves legitimate delegation of signing authority to the app
+
 

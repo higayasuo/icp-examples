@@ -36,12 +36,11 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 2. Web Frontend側での処理:
   - Expoアプリから受け取った公開鍵を使用
   - Internet Identity認証を実行
-  - 認証成功後、DelegationChainを生成
+  - 認証成功後、DelegationChainを取得
   - DelegationChainをExpoアプリにリダイレクトで返却
 
 3. Expoアプリ側での認証完了処理:
-  - SignIdentityとDelegationChainを組み合わせる
-  - DelegationIdentityを生成して認証完了
+  - SignIdentityとDelegationChainからDelegationIdentityを生成
 
 #### DelegationChainの特徴
 - ユーザーの公開鍵が含まれる
@@ -50,7 +49,6 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 #### 通信の仕組み
 - 外部ブラウザとExpoアプリ間の通信はリダイレクトを使用
 - 認証情報の転送はDelegationChainのみに限定（秘密鍵は転送しない）
-
 
 ### DelegationIdentityの構成と仕組み
 
@@ -89,8 +87,7 @@ DelegationIdentityは、アプリがトランザクションに署名するが�
   - 通常のストレージからDelegationChainを読み込む
 
 2. DelegationIdentityの生成:
-  - 読み込んだSignIdentityとDelegationChainを組み合わせる
-  - これによりDelegationIdentityを復元
+  - 読み込んだSignIdentityとDelegationChainからDelegationIdentityを生成
 
 ### Backendに接続するActor
 
