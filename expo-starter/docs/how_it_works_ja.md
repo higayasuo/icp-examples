@@ -44,6 +44,7 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
   - DelegationIdentityを生成して認証完了
 
 #### DelegationChainの特徴
+- ユーザーの公開鍵が含まれる
 - 署名権限委譲の証明書が含まれる
 
 #### 通信の仕組み
