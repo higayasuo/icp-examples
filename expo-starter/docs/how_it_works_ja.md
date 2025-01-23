@@ -18,6 +18,8 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 
 ## ExpoでInternet Identityを使うときの工夫
 
+申し訳ありません。その通りです。
+
 ### Internet IdentityはExpoで動作しない
 
 - 動作しない理由:
@@ -43,12 +45,13 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
   - SignIdentityとDelegationChainを組み合わせる
   - DelegationIdentityを生成して認証完了
 
-#### セキュリティ設計のポイント
+#### DelegationChainの特徴
+- 署名権限委譲の証明書が含まれる
 
-- 通信方式:
-  - 外部ブラウザとExpoアプリ間の通信はリダイレクトを使用
-  - 認証情報の転送はDelegationChainのみに限定（秘密鍵は転送しない）
-  - DelegationChainには署名権限委譲の証明書が含まれる
+#### 通信の仕組み
+- 外部ブラウザとExpoアプリ間の通信はリダイレクトを使用
+- 認証情報の転送はDelegationChainのみに限定（秘密鍵は転送しない）
+
 
 ### DelegationIdentityの構成と仕組み
 
