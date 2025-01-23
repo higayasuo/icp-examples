@@ -18,8 +18,6 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 
 ## ExpoでInternet Identityを使うときの工夫
 
-申し訳ありません。その通りです。
-
 ### Internet IdentityはExpoで動作しない
 
 - 動作しない理由:
