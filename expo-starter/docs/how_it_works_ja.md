@@ -568,3 +568,39 @@ const restorePreLoginScreen = async () => {
 `lastPath`がない場合、`router.replace('/')`で、ルート画面に戻ります。
 
 [useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
+
+### バックエンドにアクセスする
+バックエンドへのアクセスは、`Actor`を使って行います。
+バックエンドが`Rust`で実装されていたとしても、`Actor`を使ってタイプセーフにアクセスできます。
+
+```typescript
+const { identity, ... } = useAuth();
+
+const backend = identity ? createBackend(identity) : undefined;
+```
+`useAuth`で、`identity`を取得します。
+`identity`がある場合、`createBackend`で、`Actor`を作成します。
+`Actor`は、`identity`を使って、トランザクション(Tx)に署名し、ICPにTxを送信します。
+
+[index.tsxのソースコード](../src/expo-starter-frontend/app/(tabs)/index.tsx)
+
+```typescript
+return backend.whoami();
+```
+`backend.whoami()`で、ユーザーの`Principal`のテキスト表現を取得できます。
+
+[LoggedIn.tsxのソースコード](../src/expo-starter-frontend/components/LoggedIn.tsx)
+
+```rust
+#[ic_cdk::query]
+fn whoami() -> String {
+    ic_cdk::caller().to_text()
+}
+```
+バックエンドの`Rust`のコードです。
+`whoami()`は、ユーザーの`Principal`のテキスト表現を返します。
+
+[expo-starter-backendのソースコード](../src/expo-starter-backend/src/lib.rs)
+
+
+
