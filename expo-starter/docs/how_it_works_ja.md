@@ -118,20 +118,25 @@ Backendに接続するActorは、DelegationIdentityを使用して以下のよ�
 ### Expoアプリの起動時
 
 #### baseKeyのセットアップ
-baseKeyとは、アプリ用のSignIdentityです。
+
+baseKeyとは、アプリのSignIdentityです。
+
+##### Reactのstate設定
 
 ```typescript
 const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
   undefined,
 );
 ```
-baseKeyのためにReactのstateを宣言します。
 
+##### 処理の流れ
+
+1. セキュアなストレージからbaseKeyを読み込む:
 ```typescript
 const storedBaseKey = await SecureStore.getItemAsync('baseKey');
 ```
-セキュアなストレージから、baseKeyを読み込みます。
 
+2. baseKeyの初期化処理:
 ```typescript
 if (storedBaseKey) {
   if (!baseKey) {
@@ -146,29 +151,31 @@ if (storedBaseKey) {
   setBaseKey(key);
 }
 ```
-ストレージにbaseKeyが存在し、Reactのstateとして、baseKeyが存在しない場合、
-baseKeyをJSONから復元して、Reactのstateとして保存します。
-Ed25519KeyIdentityは、SignIdentityの一種です。
 
-ストレージにbaseKeyが存在しない場合、新しいEd25519KeyIdentityを生成し、
-セキュアなストレージとReactのstateに保存します。
-セキュアなストレージに保存するのは、SignIdentityの秘密鍵を保護するためです。
+##### 重要なポイント
+- Ed25519KeyIdentityはSignIdentityの一種
+- セキュアなストレージを使用する理由は秘密鍵の保護のため
+- 既存のbaseKeyがある場合は復元、ない場合は新規生成
 
 #### identityのセットアップ
+
 identityとは、DelegationIdentityのことです。
 
+##### Reactのstate設定
 ```typescript
 const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
   undefined,
 );
 ```
-identityのためにReactのstateを宣言します。
 
+##### 処理の流れ
+
+1. 通常ストレージからdelegationを読み込む:
 ```typescript
 const storedDelegation = await AsyncStorage.getItem('delegation');
 ```
-通常ストレージから、delegationを読み込みます。
 
+2. identityの復元処理:
 ```typescript
 if (!identity && storedBaseKey && storedDelegation) {
   const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
@@ -183,55 +190,31 @@ if (!identity && storedBaseKey && storedDelegation) {
     await AsyncStorage.removeItem('delegation');
   }
 }
-
-setIsReady(true);
 ```
-少しコードが長いので、部分的にコードを見ていきましょう。
 
-```typescript
-if (!identity && storedBaseKey && storedDelegation) {
-```
-identityが存在する場合は、何もしません。
-identityが存在しない場合は、保存されていたbaseKeyとdelegationから、identityを復元します。
+##### 重要なポイント
+- identityが既に存在する場合は処理をスキップ
+- delegationの有効期限は8時間（デフォルト）
+- 有効期限切れのdelegationは削除される
 
-```typescript
-const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
-const delegation = DelegationChain.fromJSON(storedDelegation);
-const identity = DelegationIdentity.fromDelegation(baseKey, delegation);
-```
-baseKeyとdelegationをJSONから復元します。
-identityをbaseKeyとdelegationから復元します。
-
-```typescript
-if (isDelegationValid(delegation)) {
-  console.log('Setting identity from baseKey and delegation');
-  setIdentity(identity);
-} else {
-  console.log('Invalid delegation chain, removing delegation');
-  await AsyncStorage.removeItem('delegation');
-}
-```
-delegationが有効な場合、identityをReactのstateとして保存します。
-delegationが有効でない場合、delegationを通常ストレージから削除します。
-delegationが有効でなくなる主な原因は、delegationの有効期限切れです。何も指定しない場合、有効期限は8時間です。
-
+##### セットアップ完了の管理
 ```typescript
 const [isReady, setIsReady] = useState(false);
+setIsReady(true);  // セットアップ完了時に更新
 ```
-identityのセットアップが完了したかを示しているのがisReadyです。
-isReadyのためにReactのstateを宣言します。
-
-```typescript
-setIsReady(true);
-```
-identityのセットアップの最後に、isReadyをtrueに更新します。
 
 [useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
 
-### Expoアプリでのログイン
-Expoアプリのログイン時にすることは、Internet Identityに接続するWeb Frontendを外部ブラウザ経由で呼び出すことです。
-このWeb Frontendを今後は、ii-integrationと呼ぶことにします。
+### Expoアプリでのログイン処理
 
+#### 概要
+- 目的：Internet Identity認証のためのWeb Frontend（ii-integration）を呼び出す
+- 処理の流れ：
+  1. 認証に必要なURLとパラメータの準備
+  2. 外部ブラウザでii-integrationを起動
+  3. 認証後にログイン時のページに戻るための設定
+
+#### コードの全体像
 ```typescript
 const redirectUri = createURL('/');
 
@@ -255,169 +238,101 @@ url.searchParams.set('ii_uri', iiUri);
 await AsyncStorage.setItem('lastPath', pathname);
 await WebBrowser.openBrowserAsync(url.toString());
 ```
-長いコードなので、部分的に見ていきましょう。
 
-#### redirectUriの作成
-redirectUriとは、ii-integrationからExpoアプリにリダイレクトで戻ってくるためのURLです。
+#### 各処理の詳細説明
 
+1. リダイレクトURLの設定
 ```typescript
-import { ..., createURL } from 'expo-linking';
-```
-ExpoでカスタムURLを使う場合、createURLを使用して、カスタムURLを取得します。
-開発時に、Expo Goを使用する場合、カスタムURLは特殊なものになります。
-createURLは、開発時と本番ビルド時の違いを吸収してくれます。
-
-```typescript
+import { createURL } from 'expo-linking';
 const redirectUri = createURL('/');
 ```
-createURLを使用して、redirectUriを作成します。
+- 認証後にアプリに戻るためのカスタムURL
+- createURLは開発環境と本番環境の違いを吸収
+- Expo Goでの開発時は、特殊なカスタムURLになっている
 
-#### pubkeyの作成
-pubkeyとは、baseKeyの公開鍵です。
-
+2. 公開鍵の準備
 ```typescript
 if (!baseKey) {
   throw new Error('No base key');
 }
-
 const pubkey = toHex(baseKey.getPublicKey().toDer());
 ```
-baseKeyが存在しない場合、エラーを返します。
-baseKeyの公開鍵を取得し、toHexで、16進数の文字列に変換します。
+- baseKey（アプリのSignIdentity）から公開鍵を取得
+- 16進数文字列に変換して使用
 
-#### iiUriの作成
-iiUriとは、Internet IdentityのURLです。
-
+3. Internet IdentityのURL設定
 ```typescript
 const iiUri = getInternetIdentityURL();
 ```
-getInternetIdentityURLを使用して、iiUriを作成します。
+- 環境に応じたInternet IdentityのURLを取得
+- 本番環境：`https://identity.ic0.app`
+- 開発環境：ローカルCanisterのURL
+  - Chrome：`http://<canisterId>.localhost:4943`
+  - その他：`https://<HOSTのIPアドレス>:24943/?canisterId=<canisterId>`
 
+4. ii-integrationのURL生成
 ```typescript
-export const getInternetIdentityURL = (): string => {
-  if (ENV_VARS.DFX_NETWORK === 'ic') {
-    return 'https://identity.ic0.app';
-  }
+const iiIntegrationURL = getCanisterURL(
+  ENV_VARS.CANISTER_ID_II_INTEGRATION,
+);
+const url = new URL(iiIntegrationURL);
 
-  const canisterId = ENV_VARS.CANISTER_ID_INTERNET_IDENTITY;
-
-  if (isLocalhostSubdomainSupported()) {
-    return getCanisterLocalhostSubdomainURL(canisterId);
-  }
-
-  return `https://${HOST_ADDRESS}:24943/?canisterId=${canisterId}`;
-};
+url.searchParams.set('redirect_uri', redirectUri);
+url.searchParams.set('pubkey', pubkey);
+url.searchParams.set('ii_uri', iiUri);
 ```
-ENV_VARSは、dfx deploy時に作成される.envファイルをタイプセーフに扱うことができるようにしたものです。
-dfx deploy時に、自動的に作成されます。標準では作成されないので、どのように作成するのかは、別のドキュメントで解説します。
+- ii-integration用のベースURL生成
+- 必要なパラメータの設定
+  - redirect_uri：認証後の戻り先URL
+  - pubkey：アプリの公開鍵
+  - ii_uri：Internet IdentityのURL
 
-DFX_NETWORKは、dfx deploy時に指定したネットワークです。icの場合、Internet IdentityのURLは、https://identity.ic0.appになります。
-ic以外の時は、CANISTER_ID_INTERNET_IDENTITYを使用して、Internet IdentityのcanisterIdを取得します。
-canisterIdは、canisterにつけられているIDです。canisterというのは、他のチェーンのスマートコントラクトだと理解しておくといいでしょう。
+5. ブラウザ起動前の準備と実行
+```typescript
+await AsyncStorage.setItem('lastPath', pathname);
+await WebBrowser.openBrowserAsync(url.toString());
+```
+- 現在のページパスを保存（認証後の画面遷移用）
+- 外部ブラウザでii-integrationを起動
 
-isLocalhostSubdomainSupported()は、ブラウザが、localhost subdomainをサポートしているかを返します。
-localhost subdomainをサポートしている場合、URLは、http://<canisterId>.localhost:4943になります。
-localhost subdomainをサポートしていない場合、URLは、https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>のようになります。
+#### 開発環境での注意点
 
-localhost subdomainをサポートしていない場合、PCからアクセスする場合は、http://localhost:4943/canisterId=<canisterId>も可能なのですが、https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>も同様に可能なので、話を単純化するために、https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>を使用します。
+##### ローカル開発用サーバーへのアクセス方法
 
-isLocalhostSubdomainSupported()は、すごく単純化すると、WebアプリがPCで動いていて、ブラウザがChromeの場合のみ、trueを返します。
+1. PCからのアクセス:
+  - localhost（127.0.0.1）でアクセス可能
+  - Chrome: `http://<canisterId>.localhost:4943`で直接アクセス可能
+  - Chrome以外: `http://localhost:4943/?canisterId=<canisterId>`で直接アクセス可能
 
-Expoアプリで、PCのWebアプリ以外(ネイティブアプリ、スマホWebアプリ)は、https:でLocal Canisterにアクセスする必要があります。
-しかし、ICPのLocal Canisterは、https:をサポートしていません。
-そこで、Proxyを使用して、https:のリクエストをhttp:にフォワードします。
-このプロジェクトでは、local-ssl-proxyを使います。package.jsonに下記のエントリを書いて実行しておきます。
+2. スマートフォンからのアクセス:
+  - localhostは使用できない
+  - PCのIPアドレスを使用する必要がある（例：192.168.0.210）
+  - セキュリティ要件によりhttpsでのアクセスが必要
 
+##### HTTPSアクセスの設定
+
+1. local-ssl-proxyの設定:
 ```json
 "ssl:ii": "local-ssl-proxy --source 24943 --target 4943 --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem"
 ```
-targetがhttp:のポート番号、sourceがhttps:のポート番号です。mkcertを使って、ルート局をインストールしたり、x509の証明書を作ったりする必要もあるのですが、これについては別のドキュメントで説明します。
 
-上記の設定で、https://<HOSTのIPアドレス>:24943/canisterId=<canisterId>へのリクエストは、http://localhost:4943/canisterId=<canisterId>にフォワードされます。
-
-このチュートリアルでは、24943のポート番号を使っていますが、好きなポート番号を使って構いません。
-
-```typescript
-export const isLocalhostSubdomainSupported = (): boolean => {
-  if (!window?.location?.origin?.includes('localhost')) {
-    return false;
-  }
-
-  const userAgent = window?.navigator?.userAgent?.toLowerCase() || '';
-
-  if (userAgent.includes('chrome')) {
-    return true;
-  }
-
-  return false;
-};
-```
-isLocalhostSubdomainSupportedを詳しく見ていきましょう。
-window?.location?.originにlocalhostが含まれていない場合、falseを返します。
-これは、PCからアクセスしているWebアプリに限定することを意味します。
-
-window?.navigator?.userAgent?.toLowerCase()で、ブラウザのユーザーエージェントを取得します。
-userAgentにchromeが含まれている場合、trueを返します。
-userAgentにchromeが含まれていない場合、falseを返します。
-
-わかりやすく言い換えれば、PCのWebアプリで、ブラウザがChromeのときだけ、trueを返すことになります。
-
-ExpoのWebアプリで、PCからLocal Canisterにアクセスするテストは、ChoromeとSafariだけで良いとするなら、これくらいの簡易実装もありでしょう。
-
-#### urlの作成
-このurlは、ii-integrationにアクセスするURLです。
-
-```typescript
-const iiIntegrationURL = getCanisterURL(
-  ENV_VARS.CANISTER_ID_II_INTEGRATION,
-);
-const url = new URL(iiIntegrationURL);
-```
-getCanisterURLは、先ほどのgetInternetIdentityURLと非常によく似ていて、Internet Identity以外のCanisterにアクセスするためのURLを返します。
-
-```typescript
-export const getCanisterURL = (canisterId: string): string => {
-  if (ENV_VARS.DFX_NETWORK === 'ic') {
-    return `https://${canisterId}.ic0.app`;
-  }
-
-  if (isLocalhostSubdomainSupported()) {
-    return getCanisterLocalhostSubdomainURL(canisterId);
-  }
-
-  return `https://${HOST_ADDRESS}:14943/?canisterId=${canisterId}`;
-};
-```
-先ほどのgetInternetIdentityURLとかなり似ているので、細かい説明は省きますが、ポート番号がgetInternetIdentityURLのポート番号とは異なることは頭に入れておいてください。
-これは、Internet Identityとそれを呼び出す側(ii-integration)のオリジンが異なっている必要があるためです。
-
-#### クエリパラメータの設定
-```typescript
-url.searchParams.set('redirect_uri', redirectUri);
-url.searchParams.set('pubkey', pubkey);
-url.searchParams.set('ii_uri', iiUri);
-```
-先ほど作成したurlに、redirect_uri、pubkey、ii_uriを設定します。
-
-#### 現在ページのパスの保存
-```typescript
-import { usePathname, ... } from 'expo-router';
-
-const pathname = usePathname();
-
-await AsyncStorage.setItem('lastPath', pathname);
-```
-ログイン処理から戻ってきた時に、現在のページに戻れるように、lastPathとして、現在のページのパスを保存します。
-
-#### ii-integrationの呼び出し
-```typescript
-await WebBrowser.openBrowserAsync(url.toString());
-```
-先ほどのurlを使って、ii-integrationを呼び出します。
+2. アクセス方法:
+  - 元のアドレス: `http://localhost:4943`
+  - プロキシ後: `https://192.168.0.210:24943`
+  - スマートフォンからは後者のアドレスでアクセス
 
 [useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
 
-### ii-integrationの起動時
+### ii-integrationの起動時の処理
+
+#### 概要
+- 目的：ログインボタンクリック時にInternet Identity認証を実行し、認証成功時にDelegationChainをExpoアプリに返却する処理を設定する
+- 処理の流れ：
+  1. URLパラメータから必要な情報を取得
+  2. AuthClientを作成して認証を実行
+  3. 認証成功後、DelegationChainをExpoアプリに返却
+
+#### コードの全体像
 ```typescript
 try {
   const { redirectUri, identity, iiUri } = parseParams();
@@ -450,105 +365,63 @@ try {
   renderError(formatError('initialization failed', error));
 }
 ```
-コードが長いので、部分的にコードを見ていきましょう。
 
-#### 前準備
+#### 各処理の詳細説明
+
+1. URLパラメータの取得と解析
 ```typescript
 const { redirectUri, identity, iiUri } = parseParams();
 ```
-parseParamsは、ii-integrationのURLから、redirectUri、identity、iiUriを取得します。
+- Expoアプリから受け取る情報：
+  - redirectUri：認証後の戻り先URL
+  - pubkey：Expoアプリの公開鍵
+  - iiUri：Internet IdentityのURL
+- 公開鍵のみを持つSignIdentityを生成
 
-```typescript
-interface ParsedParams {
-  redirectUri: string;
-  identity: SignIdentity;
-  iiUri: string;
-}
-
-const parseParams = (): ParsedParams => {
-  const url = new URL(window.location.href);
-  const redirectUri = url.searchParams.get('redirect_uri');
-  const pubKey = url.searchParams.get('pubkey');
-  const iiUri = url.searchParams.get('ii_uri');
-
-  if (!redirectUri || !pubKey || !iiUri) {
-    const error = new Error('Missing redirect_uri, pubkey, or ii_uri in query string');
-    renderError(error.message);
-    throw error;
-  }
-
-  const identity = new PublicKeyOnlyIdentity(
-    Ed25519PublicKey.fromDer(fromHex(pubKey)),
-  );
-
-  return { redirectUri, identity, iiUri };
-}
-```
-URLから、redirectUri、pubkey、iiUriを取得します。
-
-redirectUriは、ii-integrationからExpoアプリにリダイレクトで戻るためのURLです。
-
-pubkeyは、ExpoアプリのbaseKeyの公開鍵です。
-
-iiUriは、Internet IdentityのURLです。
-
-```typescript
-class PublicKeyOnlyIdentity extends SignIdentity {
-  #publicKey: PublicKey;
-
-  constructor(publicKey: PublicKey) {
-    super();
-    this.#publicKey = publicKey;
-  }
-
-  getPublicKey(): PublicKey {
-    return this.#publicKey;
-  }
-
-  async sign(blob: ArrayBuffer): Promise<Signature> {
-    throw new Error('Cannot sign with public key only identity');
-  }
-}
-```
-通常、SignIdentityは、公開鍵と秘密鍵を持っていますが、Internet Identityの認証で必要になるのは、getPublicKey()だけなので、このような簡易実装でも問題ありません。
-
+2. AuthClientの作成とログインボタンの取得
 ```typescript
 const authClient = await AuthClient.create({ identity });
-```
-identityを渡してAuthClientを作成します。
-identityの公開鍵はExpoアプリのものなので、これにより、ユーザーが署名することをExpoアプリに委譲できるようになります。
-
-```typescript
 const loginButton = document.querySelector('#ii-login-button') as HTMLButtonElement;
 ```
-ii-login-buttonというIDのボタンを取得します。
+- AuthClientの作成：
+  - Expoアプリの公開鍵を含むidentityを使用
+  - 署名権限の委譲に使用
+- ログインボタンの取得：
+  - このボタンのクリックで認証処理を開始するために使用
 
-#### authClient.login()
+3. 認証処理の設定
 ```typescript
-authClient.login({
-  identityProvider: iiUri,
-  onSuccess: () => {
-    try {
-      const delegationIdentity = authClient.getIdentity() as DelegationIdentity;
-      const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
-      window.location.href = url;
-    } catch (error) {
-      renderError(formatError('delegation retrieval failed', error));
-    }
-  },
-  onError: (error?: string) => {
-    renderError(formatError('authentication rejected', error || 'Unknown error'));
-  },
+loginButton.addEventListener('click', async () => {
+  renderError('');
+  try {
+    await authClient.login({
+      identityProvider: iiUri,
+      onSuccess: () => {
+        try {
+          const delegationIdentity = authClient.getIdentity() as DelegationIdentity;
+          const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
+          window.location.href = url;
+        } catch (error) {
+          renderError(formatError('delegation retrieval failed', error));
+        }
+      },
+      onError: (error?: string) => {
+        renderError(formatError('authentication rejected', error || 'Unknown error'));
+      },
+    });
+  } catch (error) {
+    renderError(formatError('login process failed', error));
+  }
 });
 ```
-identityProviderには、Internet IdentityのURLを渡します。
-onSuccessは、認証が成功した場合に呼ばれる関数です。
-onErrorは、認証が失敗した場合に呼ばれる関数です。
+- ログインボタンクリック時の処理を設定
+- クリックされたときの処理：
+  - エラーメッセージをクリア
+  - Internet Identity認証を実行
+  - 認証成功時：DelegationChainを含むURLでExpoアプリに戻る
+  - 認証失敗時：エラーメッセージを表示
 
-認証が成功すると、authClient.getIdentity()で、DelegationIdentityを取得できます。
-buildRedirectURLWithDelegationは、DelegationIdentityを使って、redirectUriに委譲情報を付与したURLを作成します。
-window.location.hrefに、そのURLを設定することで、Expoアプリにリダイレクトで戻ります。
-
+4. DelegationChainの生成と返却
 ```typescript
 const buildRedirectURLWithDelegation = (redirectUri: string, delegationIdentity: DelegationIdentity): string => {
   const delegationString = JSON.stringify(
@@ -558,50 +431,83 @@ const buildRedirectURLWithDelegation = (redirectUri: string, delegationIdentity:
   return `${redirectUri}?delegation=${encodedDelegation}`;
 };
 ```
-DelegationIdentity.getDelegation()で、DelegationChainを取得できます。
-DelegationChainは、ユーザーの公開鍵と、ユーザーがExpoアプリに署名することを委譲した証明書を持っています。
-DelegationChainは、セキュアな情報を持っていないので、リダイレクトでExpoアプリに渡すことができます。
 
-これで、ii-integrationからExpoアプリにリダイレクトでDelegationIdentityを渡す仕組みが理解できましたね。
+- DelegationChainの取得と加工:
+  - delegationIdentity.getDelegation()でDelegationChainを取得
+  - DelegationChainには以下の情報が含まれる：
+    - ユーザーの公開鍵
+    - Expoアプリへの署名権限委譲の証明書
+  - JSON文字列に変換してURLエンコード
+
+- Expoアプリへの返却:
+  - リダイレクトURLのクエリパラメータとしてDelegationChainを付加
+  - 秘密鍵は含まれないため、URLでの受け渡しが可能
+  - Expoアプリ側でSignIdentityと組み合わせてDelegationIdentityを生成
 
 [ii-integrationのソースコード](../src/ii-integration/index.ts)
 
-### ii-integrationからExpoアプリに戻ってきた時
-#### URLの取得
-```typescript
-const url = useURL();
-```
-useURLは、Expoアプリのurlを取得するためのフックです。
+### ii-integrationからExpoアプリに戻ってきた時の処理
 
-#### delegationの取得
+#### 概要
+- 目的：認証後に受け取ったDelegationChainを使用してDelegationIdentityを生成する
+  - DelegationIdentityにより、アプリがトランザクションに署名し、トランザクションの所有者はユーザーとして処理される
+- 処理の流れ：
+  1. URLからDelegationChainを取得
+  2. DelegationIdentityを生成して保存
+  3. 認証前の画面に戻る
+
+#### コードの全体像
+```typescript
+useEffect(() => {
+  if (identity || !baseKey || !url) {
+    return;
+  }
+
+  const search = new URLSearchParams(url?.split('?')[1]);
+  const delegation = search.get('delegation');
+
+  if (delegation) {
+    const chain = DelegationChain.fromJSON(JSON.parse(delegation));
+    AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
+    const id = DelegationIdentity.fromDelegation(baseKey, chain);
+    setIdentity(id);
+    console.log('set identity from delegation');
+    WebBrowser.dismissBrowser();
+    restorePreLoginScreen();
+  }
+}, [url, baseKey]);
+```
+
+#### 各処理の詳細説明
+
+1. 前提条件のチェック
+```typescript
+if (identity || !baseKey || !url) {
+  return;
+}
+```
+- 以下の場合は処理をスキップ：
+  - すでにidentityが存在する
+  - baseKeyが存在しない
+  - URLが存在しない
+
+2. DelegationChainの取得と処理
 ```typescript
 const search = new URLSearchParams(url?.split('?')[1]);
 const delegation = search.get('delegation');
-```
-urlから、delegationを取得します。
 
-#### delegationからDelegationIdentityを作成
-```typescript
 if (delegation) {
   const chain = DelegationChain.fromJSON(JSON.parse(delegation));
   AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
   const id = DelegationIdentity.fromDelegation(baseKey, chain);
   setIdentity(id);
-  console.log('set identity from delegation');
-  WebBrowser.dismissBrowser();
-  restorePreLoginScreen();
 }
 ```
-このhooksは、urlとbaseKeyが変化した時に呼び出されるため、常にURLにdelegationパラメータが含まれているとは限りません。
-そのため、delegationパラメータがある時のみ後続の処理を行います。
+- URLからDelegationChainを取得
+- DelegationChainを保存
+- baseKeyとDelegationChainからDelegationIdentityを生成
 
-JSON文字列から、chainとしてDelegationChainを復元し、保存します。
-baseKeyとchainから、DelegationIdentityを作成し、setIdentityで保存します。
-
-WebBrowser.dismissBrowser()で、ii-integrationを閉じます。
-
-restorePreLoginScreen()で、ログイン前の画面に戻します。
-
+3. 画面遷移の処理
 ```typescript
 const restorePreLoginScreen = async () => {
   const path = await AsyncStorage.getItem('lastPath');
@@ -613,42 +519,51 @@ const restorePreLoginScreen = async () => {
   }
 };
 ```
-AsyncStorageから、lastPathを取得します。
-lastPathがある場合、そのパスに戻ります。
-lastPathがない場合、router.replace('/')で、ルート画面に戻ります。
+- 保存していた画面パスの取得と遷移：
+  - lastPathが存在する場合：保存していた画面に遷移
+  - lastPathが存在しない場合：ルート画面に遷移
+- 使用済みのlastPathは削除
+
+#### 重要なポイント
+- DelegationChainとbaseKeyの組み合わせにより：
+  - アプリがトランザクションに署名可能
+  - トランザクションはユーザーの操作として処理される
+- DelegationChainはセキュアな情報を含まないため通常のストレージに保存
 
 [useAuth.tsのソースコード](../src/expo-starter-frontend/hooks/useAuth.ts)
 
-### バックエンドにアクセスする
-バックエンドへのアクセスは、Actorを使って行います。
-バックエンドがRustで実装されていたとしても、Actorを使ってタイプセーフにアクセスできます。
+### バックエンドへのアクセス方法
 
+#### 概要
+- 目的：Actorを使用してバックエンドと型安全に通信する
+- 特徴：
+  - Rustで実装されたバックエンドにTypeScriptからアクセス
+  - DelegationIdentityを使用してトランザクションに署名
+
+#### フロントエンド側の実装
 ```typescript
+// Actorの生成
 const { identity, ... } = useAuth();
-
 const backend = identity ? createBackend(identity) : undefined;
-```
-useAuthで、identityを取得します。
-identityがある場合、createBackendで、Actorを作成します。
-Actorは、identityを使って、トランザクション(Tx)に署名し、ICPにTxを送信します。
 
-[index.tsxのソースコード](../src/expo-starter-frontend/app/(tabs)/index.tsx)
-
-```typescript
+// バックエンドの呼び出し
 return backend.whoami();
 ```
-backend.whoami()で、ユーザーのPrincipalのテキスト表現を取得できます。
 
-[LoggedIn.tsxのソースコード](../src/expo-starter-frontend/components/LoggedIn.tsx)
-
+#### バックエンド側の実装（Rust）
 ```rust
 #[ic_cdk::query]
 fn whoami() -> String {
     ic_cdk::caller().to_text()
 }
 ```
-バックエンドのRustのコードです。
-whoami()は、ユーザーのPrincipalのテキスト表現を返します。
+
+#### 処理の流れ
+- フロントエンド：
+  - DelegationIdentityを使用してActorを作成
+  - Actorを通じてバックエンドのメソッドを呼び出し
+- バックエンド：
+  - 呼び出し元（ユーザー）のPrincipalを文字列として返却
 
 [expo-starter-backendのソースコード](../src/expo-starter-backend/src/lib.rs)
 
