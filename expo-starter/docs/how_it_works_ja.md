@@ -326,7 +326,7 @@ await WebBrowser.openBrowserAsync(url.toString());
 ### ii-integrationの起動時の処理
 
 #### 概要
-- 目的：ログインボタンクリック時にInternet Identity認証を実行し、認証成功時にDelegationChainをExpoアプリに返却する処理を設定する
+- 目的：ログインボタンクリック時にInternet Identity認証を実行し、認証成功時にDelegationChainをExpoアプリに返却するイベントハンドラーを定義する
 - 処理の流れ：
   1. URLパラメータから必要な情報を取得
   2. AuthClientを作成して認証を実行
@@ -450,7 +450,7 @@ const buildRedirectURLWithDelegation = (redirectUri: string, delegationIdentity:
 
 #### 概要
 - 目的：認証後に受け取ったDelegationChainを使用してDelegationIdentityを生成する
-  - DelegationIdentityにより、アプリがトランザクションに署名し、トランザクションの所有者はユーザーとして処理される
+  - DelegationIdentityにより、アプリがトランザクションに署名し、トランザクションの実行者はユーザーとして処理される
 - 処理の流れ：
   1. URLからDelegationChainを取得
   2. DelegationIdentityを生成して保存

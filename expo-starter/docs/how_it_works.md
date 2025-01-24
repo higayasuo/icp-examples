@@ -326,7 +326,7 @@ await WebBrowser.openBrowserAsync(url.toString());
 ### Initialization Process of ii-integration
 
 #### Overview
-- Purpose: Configure process to execute Internet Identity authentication on login button click and return DelegationChain to Expo app upon successful authentication
+- Purpose: Define event handler to execute Internet Identity authentication on login button click and return DelegationChain to Expo app upon successful authentication
 - Process Flow:
   1. Retrieve necessary information from URL parameters
   2. Create AuthClient and execute authentication
