@@ -52,7 +52,7 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 
 ### DelegationIdentityの構成と仕組み
 
-DelegationIdentityは、アプリがトランザクションに署名するが、トランザクションの保有者はユーザーということを実現するための仕組みです。
+DelegationIdentityは、アプリがトランザクションに署名し、トランザクションの実行者はユーザーということを実現するための仕組みです。
 
 - 構成要素:
   - SignIdentity: 秘密鍵を保持し、トランザクション署名機能を提供
