@@ -21,7 +21,7 @@ The Internet Identity Frontend is provided as a [web application](https://identi
 ### Internet Identity Not Working with Expo
 
 - Reason for not working:
-  - Internet Identity uses window.postMessage() for authentication
+  - Internet Identity uses window.postMessage()
   - window.postMessage() is not supported in Expo
 
 #### Solution

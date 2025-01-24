@@ -21,7 +21,7 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 ### Internet IdentityはExpoで動作しない
 
 - 動作しない理由:
-  - Internet Identityは、window.postMessage()を使用して認証を行う
+  - Internet Identityは、window.postMessage()を使用する
   - Expoではwindow.postMessage()が未サポート
 
 #### 解決方法
