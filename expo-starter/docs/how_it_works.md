@@ -76,7 +76,7 @@ DelegationIdentity is a mechanism that allows apps to sign transactions while ma
 
 - Elements to store:
   - SignIdentity: Store in secure storage (expo-secure-store)
-    - Reason: Contains sensitive information including private key
+    - Reason: Contains private key
   - DelegationChain: Store in regular storage (@react-native-async-storage/async-storage)
     - Reason: Contains no confidential information
 

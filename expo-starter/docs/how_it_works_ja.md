@@ -76,7 +76,7 @@ DelegationIdentityは、アプリがトランザクションに署名し、ト�
 
 - 保存する要素:
   - SignIdentity: セキュアなストレージ（expo-secure-store）に保存
-    - 理由: 秘密鍵を含む重要な情報を持つため
+    - 理由: 秘密鍵を持つため
   - DelegationChain: 通常のストレージ（@react-native-async-storage/async-storage）に保存
     - 理由: 機密情報を含まないため
 
@@ -102,13 +102,13 @@ Backendに接続するActorは、DelegationIdentityを使用して以下のよ�
 
 2. ICPでの処理:
   - DelegationChainの証明書を検証
-  - DelegationChainから委譲先アプリの公開鍵を取得
+  - DelegationChainからアプリの公開鍵を取得
   - アプリの公開鍵でトランザクションの署名を検証
   - 検証成功後、ユーザーの操作としてトランザクションを実行
 
 #### 重要なポイント
 
-- アプリがトランザクションに署名するが、実行はユーザーの操作として処理される
+- アプリがトランザクションに署名し、実行はユーザーの操作として処理される
 - DelegationChainによって、アプリへの署名権限委譲が正当であることを証明
 
 ## コードで理解しよう - Native(iOS/Android)編
