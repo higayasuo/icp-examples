@@ -56,7 +56,7 @@ DelegationIdentity is a mechanism that allows apps to sign transactions while ma
 
 #### Components
 - SignIdentity: Holds the private key and provides transaction signing functionality
-- DelegationChain: Contains certificates proving the delegation of signing authority from users to applications
+- DelegationChain: Delegation of signing authority from users to applications
 
 #### Transaction Processing Flow
 
@@ -66,7 +66,7 @@ DelegationIdentity is a mechanism that allows apps to sign transactions while ma
 
 2. ICP Verification Process:
   - Verifies the certificates in DelegationChain
-  - Retrieves delegated app's public key from DelegationChain
+  - Retrieves app's public key from DelegationChain
   - Verifies transaction signature using app's public key
 
 3. Transaction Execution:
