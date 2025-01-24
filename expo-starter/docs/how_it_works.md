@@ -47,7 +47,7 @@ Authentication flow is implemented by separating authentication process to Web F
 - Contains certificate for signature authority delegation from user to app
 
 #### Communication Mechanism
-- Communication between external browser and Expo app uses redirect
+- Communication from external browser to Expo app uses redirect(Custom URL)
 - Authentication information transfer limited to DelegationChain only (private key not transferred)
 
 ### Structure and Mechanism of DelegationIdentity

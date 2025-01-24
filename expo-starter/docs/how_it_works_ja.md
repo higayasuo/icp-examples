@@ -47,7 +47,7 @@ Internet IdentityのFrontendは、[Webアプリ](https://identity.ic0.app/)と�
 - ユーザーからアプリへの署名権限委譲の証明書が含まれる
 
 #### 通信の仕組み
-- 外部ブラウザとExpoアプリ間の通信はリダイレクトを使用
+- 外部ブラウザからExpoアプリへの通信はリダイレクト(Custom URL)を使用
 - 認証情報の転送はDelegationChainのみに限定（秘密鍵は転送しない）
 
 ### DelegationIdentityの構成と仕組み
