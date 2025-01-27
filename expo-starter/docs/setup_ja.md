@@ -193,9 +193,9 @@ npm run ssl:ii
 npm run ssl:web
 ```
 これらのコマンドは下記のことをしています：
-1. ssl:canistersはキャニスター用のHTTPS接続を提供します（14943→4943）
+1. ssl:canistersはCanister用のHTTPS接続を提供します（14943→4943）
 2. ssl:iiはInternet Identity用のHTTPS接続を提供します（24943→4943）
-3. ssl:webはWebフロントエンド用のHTTPS接続を提供します（18081→8081）
+3. ssl:webはWebアプリ用のHTTPS接続を提供します（18081→8081）
 
 **重要な注意点**
 - 各コマンドは必ず別々の新しいターミナルで実行してください
