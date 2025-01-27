@@ -154,34 +154,30 @@ package.jsonのssl:canisters, ssl:ii, ssl:webのエントリを、自分で設�
 - [静的IPアドレス]は、先ほど設定した静的IPアドレスに置き換えてください
 - 証明書と秘密鍵のファイルパスは、mkcertで生成したファイルの場所と一致させてください
 
-## dfx:start
-### 開発サーバーの起動
+## ローカルreplicaの起動
+ローカルでCanisterを動かす実行環境のことをローカルreplicaと呼びます。
 新しいターミナルを立ち上げて、以下のコマンドを実行します：
 ```bash
 npm run dfx:start
 ```
-このコマンドは下記のことをしています：
-1. ローカルreplicaを開始します
-2. 4943番ポートでサーバーが起動します
+ローカルreplicaが、4943番ポートで起動します
 
-### 開発サーバーの停止方法
-開発サーバーを停止するには、以下のいずれかの方法を使用します：
+### ローカルreplicaの停止方法
+ローカルreplicaを停止するには、以下のいずれかの方法を使用します：
 - 起動中のターミナルでCtrl+Cを押します
 - 別のターミナルで`dfx stop`コマンドを実行します
 
 **重要な注意点**
 `Error: dfx is already running.`というエラーが出た場合は、すでに、dfx startを実行している可能性が高いです。一度、dfx stopでローカルreplicaを停止してから、再度、開発サーバを立ち上げてください。
 
-## dfx:deploy
-internet-identity, ii-integration, frontend, backendのキャニスターをデプロイするには、
-新しいターミナルを立ち上げて、以下のコマンドを実行します：
-
+## Canisterのデプロイ
+ローカルreplicaに、Canisterをデプロイするには、以下のコマンドを実行します：
 ```bash
 npm run dfx:deploy
 ```
 このコマンドは下記のことをしています：
-1. 全てのキャニスター（internet-identity, ii-integration, frontend, backend）をビルドします
-2. ビルドしたキャニスターをローカルreplicaにインストールします
+1. 全てのCanister（internet-identity, ii-integration, expo-starter-frontend, expo-starter-backend）をビルドします
+2. ビルドしたCanisterをローカルreplicaにインストールします
 
 **重要な注意点**
 - デプロイ前にdfx:startが実行されている必要があります
@@ -208,10 +204,10 @@ npm run ssl:web
 - 起動後はCtrl+Cで個別に停止できます
 
 
-## frontend:start
+## Expo開発サーバーの起動
 Expo開発サーバーの起動方法を説明します
 
-### 基本的な起動コマンド
+### 起動コマンド
 ```bash
 npm run frontend:start
 ```
@@ -230,7 +226,7 @@ npm run frontend:start
 
 **重要な注意点**
 - PCとスマートフォンは同じWi-Fiに接続してください
-- 開発サーバーの停止はCtrl+Cで行います
+- Expo開発サーバーの停止はCtrl+Cで行います
 
 **Androidの制限事項**
 - Androidでは、ローカルのInternet Identityは動作しません
@@ -239,5 +235,5 @@ npm run frontend:start
 
 ## セットアップ完了
 
-これで、ExpoアプリでInternet Identityを使って、ICPのBackendに接続するためのセットアップは完了です。
+これで、ExpoアプリでInternet Identity認証を行い、ICPのBackendに接続するためのセットアップは完了です。
 
