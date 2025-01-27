@@ -9,5 +9,6 @@ This means that native mobile applications can now fully utilize the capabilitie
 
 - [How it works](docs/how_it_works.md)
 - [How it works in Japanese](docs/how_it_works_ja.md)
+- [Setup in Japanese](docs/setup_ja.md)
 
 

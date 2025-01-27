@@ -229,3 +229,8 @@ npm run frontend:start
 **重要な注意点**
 - PCとスマートフォンは同じWi-Fiに接続してください
 - 開発サーバーの停止はCtrl+Cで行います
+
+## セットアップ完了
+
+これで、ExpoアプリでInternet Identityを使って、ICPのBackendに接続するためのセットアップは完了です。
+
