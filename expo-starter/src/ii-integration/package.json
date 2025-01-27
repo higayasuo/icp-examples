@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "setup": "npm install",
     "build": "tsc && vite build",
     "watch": "tsc -w"
   },

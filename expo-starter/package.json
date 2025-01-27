@@ -4,12 +4,16 @@
     "npm": ">=7.0.0"
   },
   "scripts": {
+    "setup": "npm install && npm run ii:setup && npm run frontend:setup && npm run ii-integration:setup",
     "dfx:start": "dfx start --clean",
     "dfx:deploy": "dfx deps deploy && dfx deploy",
     "ssl:canisters": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 14943 --target 4943",
     "ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 24943 --target 4943",
     "ssl:web": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 18081 --target 8081",
-    "frontend:start": "npm run start --prefix src/expo-starter-frontend"
+    "frontend:setup": "npm run setup --prefix src/expo-starter-frontend",
+    "frontend:start": "npm run start --prefix src/expo-starter-frontend",
+    "ii:setup": "dfx deps pull && dfx deps init",
+    "ii-integration:setup": "npm run setup --prefix src/ii-integration"
   },
   "name": "expo-starter",
   "type": "module",

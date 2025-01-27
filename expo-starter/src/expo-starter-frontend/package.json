@@ -3,7 +3,9 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "setup": "npm install && npx expo install --fix",
     "start": "expo start --clear",
+    "build": "npx expo export -p web",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

@@ -19,6 +19,16 @@
       "type": "assets",
       "build": "npm run build --prefix src/ii-integration"
     },
+    "expo-starter-frontend": {
+      "dependencies": [
+        "ii-integration"
+      ],
+      "source": [
+        "src/expo-starter-frontend/dist"
+      ],
+      "type": "assets",
+      "build": "npm run build --prefix src/expo-starter-frontend"
+    },
     "internet-identity": {
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
