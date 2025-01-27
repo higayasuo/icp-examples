@@ -15,7 +15,7 @@ mkcertのインストール方法と設定手順を説明します。
 ### macOSでのインストール
 ```bash
 brew install mkcert
-brew install nss
+brew install nss # Firefoxを使用する場合は必要
 ```
 
 ### ルート認証局の設定
