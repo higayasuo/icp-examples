@@ -236,7 +236,42 @@ npm run frontend:start
 - メインネットのInternet Identityは動作します
 - Expo Goでのテストは、iOSで行ってください
 
-## セットアップ完了
+## 稼働確認
+Expo Goを使って実際にアプリを使ってみましょう。
 
-これで、ExpoアプリでInternet Identity認証を行い、ICPのBackendに接続するためのセットアップは完了です。
+1. Expo開発サーバーを起動したときに表示されたQRコードをiOSのカメラで読み取り、Expoアプリを起動します。
+![QRコード](./images/qrcode.png)
+
+2. Expoアプリのログインボタンをタップし、ii-integrationのWebアプリを起動します。
+![アプリのログイン](./images/app-login.png)
+
+
+3. ii-integrationのログインボタンをタップし、Internet Identityを起動します。
+![ii-integrationのログイン](./images/ii-integration-login.png)
+
+4. Internet Identity作成ボタンをタップし、Internet Identityを作成します。
+![Internet Identityの作成](./images/create-internet-identity.png)
+
+5. Internet Identityが作成されました。
+開発環境では、10000で作成されます。この数字は、Internet Identityを表していて、本番環境では、覚えておく必要があります。
+I saved it, continueボタンをクリックすると、Expoアプリに戻ります。
+![Created Internet Identity](./images/created-internet-identity.png)
+
+6. Expoアプリから、Backend Canisterのwhoamiメソッドを呼び出しましょう。whoamiボタンをタップします。すると、あなたのInternet Identity(ログインアカウント)のテキスト表現を見ることができます。
+他のブロックチェーンのアドレスに相当します。
+![whoami](./images/whoami.png)
+![whoamiの呼び出し結果](./images/whoami-result.png)
+
+7. ログアウトしてから再度ログインしてください。
+Choose Identityのページが表示されます。先ほど作成した10000を選べば、再ログインできます。
+![Choose Identity](./images/choose-internet-identity.png)
+
+8. Choose IdentityでIdentityを選んだときに、Unknown Internet Identityのエラーが出る場合があります。
+これは、Identityを作成後に、ローカルInternet Identityを再デプロイしたときに起こります。
+ブラウザは、Identityを覚えていますが、ローカルInternet IdentityはIdentityを忘れてしまっているためです。
+![Unknown Internet Identity](./images/unknown-internet-identity.png)
+
+9. このような場合は、Identityの下に表示されているMore optionsをタップしてください。左下のCreate Newボタンをタップしましょう。10000のIdentityを再作成できます。
+![Create new Identity](./images/create-new.png)
+![Created Internet Identity](./images/created-internet-identity.png)
 

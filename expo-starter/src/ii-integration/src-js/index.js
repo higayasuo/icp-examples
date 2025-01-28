@@ -10,28 +10,42 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _PublicKeyOnlyIdentity_publicKey;
-import { SignIdentity, fromHex, } from "@dfinity/agent";
-import { AuthClient } from "@dfinity/auth-client";
-import { Ed25519PublicKey } from "@dfinity/identity";
+import { SignIdentity, fromHex } from '@dfinity/agent';
+import { AuthClient } from '@dfinity/auth-client';
+import { Ed25519PublicKey } from '@dfinity/identity';
+class PublicKeyOnlyIdentity extends SignIdentity {
+    constructor(publicKey) {
+        super();
+        _PublicKeyOnlyIdentity_publicKey.set(this, void 0);
+        __classPrivateFieldSet(this, _PublicKeyOnlyIdentity_publicKey, publicKey, "f");
+    }
+    getPublicKey() {
+        return __classPrivateFieldGet(this, _PublicKeyOnlyIdentity_publicKey, "f");
+    }
+    async sign(blob) {
+        throw new Error('Cannot sign with public key only identity');
+    }
+}
+_PublicKeyOnlyIdentity_publicKey = new WeakMap();
 const formatError = (prefix, error) => {
     return `Internet Identity ${prefix}: ${error instanceof Error ? error.message : String(error)}`;
 };
 const renderError = (message) => {
-    const errorElement = document.querySelector("#error");
+    const errorElement = document.querySelector('#error');
     if (!errorElement) {
-        console.error("Error element not found");
+        console.error('Error element not found');
         return;
     }
     errorElement.textContent = message;
-    errorElement.style.display = message ? "block" : "none";
+    errorElement.style.display = message ? 'block' : 'none';
 };
 const parseParams = () => {
     const url = new URL(window.location.href);
-    const redirectUri = url.searchParams.get("redirect_uri") || "";
-    const pubKey = url.searchParams.get("pubkey");
-    const iiUri = url.searchParams.get("ii_uri");
+    const redirectUri = url.searchParams.get('redirect_uri');
+    const pubKey = url.searchParams.get('pubkey');
+    const iiUri = url.searchParams.get('ii_uri');
     if (!redirectUri || !pubKey || !iiUri) {
-        const error = new Error("Missing redirect_uri, pubkey, or ii_uri in query string");
+        const error = new Error('Missing redirect_uri, pubkey, or ii_uri in query string');
         renderError(error.message);
         throw error;
     }
@@ -47,9 +61,9 @@ const main = async () => {
     try {
         const { redirectUri, identity, iiUri } = parseParams();
         const authClient = await AuthClient.create({ identity });
-        const loginButton = document.querySelector("#ii-login-button");
-        loginButton.addEventListener("click", async () => {
-            renderError("");
+        const loginButton = document.querySelector('#ii-login-button');
+        loginButton.addEventListener('click', async () => {
+            renderError('');
             try {
                 await authClient.login({
                     identityProvider: iiUri,
@@ -60,37 +74,23 @@ const main = async () => {
                             window.location.href = url;
                         }
                         catch (error) {
-                            renderError(formatError("delegation retrieval failed", error));
+                            renderError(formatError('delegation retrieval failed', error));
                         }
                     },
                     onError: (error) => {
-                        renderError(formatError("authentication rejected", error || "Unknown error"));
+                        renderError(formatError('authentication rejected', error || 'Unknown error'));
                     },
                 });
             }
             catch (error) {
-                renderError(formatError("login process failed", error));
+                renderError(formatError('login process failed', error));
             }
         });
     }
     catch (error) {
-        renderError(formatError("initialization failed", error));
+        renderError(formatError('initialization failed', error));
     }
 };
-class PublicKeyOnlyIdentity extends SignIdentity {
-    constructor(publicKey) {
-        super();
-        _PublicKeyOnlyIdentity_publicKey.set(this, void 0);
-        __classPrivateFieldSet(this, _PublicKeyOnlyIdentity_publicKey, publicKey, "f");
-    }
-    getPublicKey() {
-        return __classPrivateFieldGet(this, _PublicKeyOnlyIdentity_publicKey, "f");
-    }
-    async sign(blob) {
-        throw new Error("Cannot sign with incomplete identity");
-    }
-}
-_PublicKeyOnlyIdentity_publicKey = new WeakMap();
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener('DOMContentLoaded', () => {
     main();
 });
