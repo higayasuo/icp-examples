@@ -50,8 +50,8 @@ tigedは、GitHubリポジトリの一部分だけを簡単にダウンロード
 npm install -g tiged
 ```
 
-## プロジェクトのダウンロード
-以下のコマンドでプロジェクトをダウンロードし、プロジェクトフォルダに移動します：
+## expo-starterプロジェクトのダウンロード
+以下のコマンドで、expo-starterプロジェクトをダウンロードし、プロジェクトフォルダに移動します：
 ```bash
 tiged higayasuo/icp-examples/expo-starter expo-starter
 cd expo-starter
@@ -77,8 +77,9 @@ dfx -V
 **注意点**：
 - バージョン確認時は「V」は必ず大文字で入力してください
 
-## Frontend, Internet Identity, ii-integrationのセットアップ
-下記のコマンドで、Frontend, Internet Identity, ii-integrationのセットアップを行います：
+## サブプロジェクトのセットアップ
+expo-starterプロジェクトには、いくつかのサブプロジェクトで構成されています。
+下記のコマンドで、サブプロジェクトのセットアップを行います：
 ```bash
 npm run setup
 ```
