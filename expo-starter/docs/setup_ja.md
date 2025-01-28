@@ -44,6 +44,8 @@ mkcert -CAROOT
 - Androidは、機種によって、ルート証明書のインストール方法が異なる場合がある
 
 ## tigedのインストール
+tigedは、GitHubリポジトリの一部分だけを簡単にダウンロードできる便利なツールです。
+下記のコマンドを実行して、tigedをインストールします：
 ```bash
 npm install -g tiged
 ```
@@ -54,8 +56,9 @@ npm install -g tiged
 tiged higayasuo/icp-examples/expo-starter expo-starter
 cd expo-starter
 ```
-## RustとICPの開発ツールのインストール
 
+## RustとICPの開発ツールのインストール
+RustとICPの開発ツールをインストールする手順を説明します。
 ### インストールの実行
 以下のコマンドを実行して、RustとICPの開発ツールをインストールします：
 ```bash
