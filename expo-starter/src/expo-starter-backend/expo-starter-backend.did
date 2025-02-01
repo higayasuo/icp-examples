@@ -1,1 +1,24 @@
-service : { whoami : () -> (text) query }
+type VetKDCurve = variant { bls12_381_g2 };
+type VetKDEncryptedKeyReply = record { encrypted_key : blob };
+type VetKDEncryptedKeyRequest = record {
+  key_id : VetKDKeyId;
+  derivation_path : vec blob;
+  derivation_id : blob;
+  encryption_public_key : blob;
+};
+type VetKDKeyId = record { name : text; curve : VetKDCurve };
+type VetKDPublicKeyReply = record { public_key : blob };
+type VetKDPublicKeyRequest = record {
+  key_id : VetKDKeyId;
+  canister_id : opt principal;
+  derivation_path : vec blob;
+};
+service : {
+  encrypted_ibe_decryption_key_for_caller : (blob) -> (text);
+  ibe_encryption_key : () -> (text);
+  vetkd_derive_encrypted_key : (VetKDEncryptedKeyRequest) -> (
+      VetKDEncryptedKeyReply,
+    );
+  vetkd_public_key : (VetKDPublicKeyRequest) -> (VetKDPublicKeyReply);
+  whoami : () -> (text) query;
+}
