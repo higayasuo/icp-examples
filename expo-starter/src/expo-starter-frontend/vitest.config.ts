@@ -4,10 +4,10 @@ import { resolve } from 'path';
 export default defineConfig({
   test: {
     environment: 'jsdom',
-    server: {
-      deps: {
-        inline: ['react-native'],
-      },
+    globals: true,
+    setupFiles: [resolve(__dirname, './vitest.setup.ts')],
+    deps: {
+      inline: ['expo-crypto', 'react-native'],
     },
   },
   resolve: {

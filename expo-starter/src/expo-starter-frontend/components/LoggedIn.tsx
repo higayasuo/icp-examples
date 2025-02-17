@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
+import { Principal } from '@dfinity/principal';
 import {
   baseTextStyles,
   containerStyles,
@@ -9,15 +10,17 @@ import {
   disabledButtonStyles,
   buttonTextStyles,
 } from './styles';
+import { IBECipher } from './IBECipher';
 import { ActorSubclass } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
 
 interface LoggedInProps {
   onLogout: () => Promise<void>;
   backend: ActorSubclass<_SERVICE> | undefined;
+  principal: Principal | undefined;
 }
 
-function LoggedIn({ onLogout, backend }: LoggedInProps) {
+function LoggedIn({ onLogout, backend, principal }: LoggedInProps) {
   const [who, setWho] = React.useState<string | undefined>();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
@@ -66,6 +69,7 @@ function LoggedIn({ onLogout, backend }: LoggedInProps) {
       </Pressable>
       {who && <Text style={baseTextStyles}>{who}</Text>}
       {error && <Text style={{ color: 'red' }}>{error}</Text>}
+      <IBECipher backend={backend} principal={principal} />
       <Pressable
         style={busy ? disabledButtonStyles : buttonStyles}
         accessibilityRole="button"

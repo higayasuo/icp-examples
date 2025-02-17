@@ -1,10 +1,17 @@
 {
-  "extends": "./node_modules/expo/tsconfig.base",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "module": "esnext",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-native",
+    "typeRoots": ["./node_modules/@types", "./node_modules/ic-vetkd-utils"]
   },
   "include": [
     "**/*.ts",
@@ -12,5 +19,6 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "app/+html.tsx"
-  ]
+  ],
+  "exclude": ["node_modules"]
 }
