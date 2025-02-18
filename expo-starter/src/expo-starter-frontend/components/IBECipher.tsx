@@ -13,8 +13,9 @@ import { ActorSubclass, Actor } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Principal } from '@dfinity/principal';
 import * as vetkd from 'ic-vetkd-utils';
-import { hex_decode, hex_encode } from '@/utils/hex';
 import { platformCrypto } from '@/crypto/platformCrypto';
+import { principalFromAgent } from '@/icp/principalFromAgent';
+import { ibeEncrypt } from '@/icp/ibeEncrypt';
 
 interface IBECipherProps {
   backend: ActorSubclass<_SERVICE>;
@@ -41,37 +42,20 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
   }, [agent]);
 
   const handleEncrypt = async () => {
-    if (!plaintext.trim()) return;
-
-    const ibe_principal =
-      (await agent?.getPrincipal()) || Principal.anonymous();
-
     setBusy(true);
     setError(undefined);
     try {
-      // Get the IBE encryption key
-      setEncryptedText('Fetching IBE encryption key...');
-      const pk_bytes_hex = await backend.ibe_encryption_key();
-      console.log('pk_bytes_hex', pk_bytes_hex);
-
-      // Prepare for IBE encryption
-      setEncryptedText('Preparing IBE-encryption...');
-      const message_encoded = new TextEncoder().encode(plaintext);
+      setEncryptedText('IBE encryption starting...');
+      const principal = await principalFromAgent(agent);
+      const publicKey = await backend.ibe_encryption_key();
       const seed = platformCrypto.getRandomBytes(32);
-
-      // Perform IBE encryption
-      setEncryptedText(
-        `IBE-encrypting for principal ${ibe_principal.toText()}...`,
-      );
-
-      const ibe_ciphertext = vetkd.IBECiphertext.encrypt(
-        hex_decode(pk_bytes_hex),
-        ibe_principal.toUint8Array(),
-        message_encoded,
+      const encryptedBytes = await ibeEncrypt({
+        plaintext,
+        principal,
+        publicKey,
         seed,
-      );
-      const encryptedBytes = ibe_ciphertext.serialize();
-      const encryptedHex = hex_encode(encryptedBytes);
+      });
+      const encryptedHex = Buffer.from(encryptedBytes).toString('hex');
       setEncryptedText(encryptedHex);
     } catch (error) {
       setError(`Error occurred during encryption: ${(error as Error).message}`);
@@ -103,13 +87,13 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
         (await agent?.getPrincipal()) || Principal.anonymous();
 
       const k_bytes = tsk.decrypt(
-        hex_decode(ek_bytes_hex),
-        hex_decode(pk_bytes_hex),
+        Buffer.from(ek_bytes_hex, 'hex'),
+        Buffer.from(pk_bytes_hex, 'hex'),
         ibe_principal.toUint8Array(),
       );
       console.log('k_bytes', k_bytes);
       const ibe_ciphertext = vetkd.IBECiphertext.deserialize(
-        hex_decode(encryptedText),
+        Buffer.from(encryptedText, 'hex'),
       );
       const ibe_plaintext = ibe_ciphertext.decrypt(k_bytes);
       setDecryptedText(new TextDecoder().decode(ibe_plaintext));
