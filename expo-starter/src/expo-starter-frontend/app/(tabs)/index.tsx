@@ -1,26 +1,19 @@
 import { StyleSheet, View } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
-import LoggedIn from '@/components/LoggedIn';
-import LoggedOut from '@/components/LoggedOut';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { WhoAmI } from '@/components/WhoAmI';
 import { createBackend } from '@/icp/backend';
 
 export default function TabOneScreen() {
-  const { identity, isReady, logout, login } = useAuth();
-
-  const backend = identity ? createBackend(identity) : undefined;
-  const principal = identity ? identity.getPrincipal() : undefined;
+  const { identity, isReady } = useAuthContext();
+  const backend = createBackend(identity);
 
   if (!isReady) {
-    return undefined;
+    return null;
   }
 
   return (
     <View style={styles.container} accessible={true}>
-      {identity ? (
-        <LoggedIn onLogout={logout} backend={backend} principal={principal} />
-      ) : (
-        <LoggedOut onLogin={login} />
-      )}
+      <WhoAmI backend={backend} />
     </View>
   );
 }
@@ -30,6 +23,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 20,
   },
 });

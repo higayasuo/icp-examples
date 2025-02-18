@@ -1,14 +1,19 @@
-import { StyleSheet } from 'react-native';
-
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+import { StyleSheet, View } from 'react-native';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { IBECipher } from '@/components/IBECipher';
+import { createBackend } from '@/icp/backend';
 
 export default function TabTwoScreen() {
+  const { identity, isReady } = useAuthContext();
+  const backend = createBackend(identity);
+
+  if (!isReady) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
+      <IBECipher backend={backend} />
     </View>
   );
 }
@@ -16,16 +21,8 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+    paddingTop: 20,
   },
 });

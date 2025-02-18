@@ -1,5 +1,6 @@
 import { Actor, HttpAgent, ActorSubclass, Identity } from '@dfinity/agent';
 import { IDL } from '@dfinity/candid';
+import { AnonymousIdentity } from '@dfinity/agent';
 
 import { ENV_VARS } from './env.generated';
 import { getCanisterURL } from './getCanisterURL';
@@ -10,7 +11,7 @@ import { getCanisterURL } from './getCanisterURL';
 type CreateActorParams = {
   canisterId: string;
   interfaceFactory: IDL.InterfaceFactory;
-  identity: Identity;
+  identity?: Identity;
 };
 
 /**
@@ -22,7 +23,7 @@ type CreateActorParams = {
 export function createActor<T>({
   canisterId,
   interfaceFactory,
-  identity,
+  identity = new AnonymousIdentity(),
 }: CreateActorParams): ActorSubclass<T> {
   const httpAgentOptions = {
     host: getCanisterURL(canisterId),

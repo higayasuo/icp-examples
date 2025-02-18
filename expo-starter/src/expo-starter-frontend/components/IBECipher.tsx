@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { buttonStyles, buttonTextStyles, disabledButtonStyles } from './styles';
-import { ActorSubclass } from '@dfinity/agent';
+import { ActorSubclass, Actor } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Principal } from '@dfinity/principal';
 import * as vetkd from 'ic-vetkd-utils';
@@ -18,14 +18,13 @@ import { platformCrypto } from '@/crypto/platformCrypto';
 
 interface IBECipherProps {
   backend: ActorSubclass<_SERVICE> | undefined;
-  principal: Principal | undefined;
 }
 
 /**
  * IBE (Identity-Based Encryption) cipher component
  * Provides UI for text encryption with input field and encryption button
  */
-export const IBECipher = ({ backend, principal }: IBECipherProps) => {
+export const IBECipher = ({ backend }: IBECipherProps) => {
   const [plaintext, setPlaintext] = useState('');
   const [encryptedText, setEncryptedText] = useState('');
   const [decryptedText, setDecryptedText] = useState('');
@@ -33,12 +32,25 @@ export const IBECipher = ({ backend, principal }: IBECipherProps) => {
   const [error, setError] = useState<string | undefined>();
   const { width } = useWindowDimensions();
 
+  const agent = backend ? Actor.agentOf(backend) : undefined;
+
+  useEffect(() => {
+    setPlaintext('');
+    setEncryptedText('');
+    setDecryptedText('');
+  }, [agent]);
+
   const handleEncrypt = async () => {
     if (!plaintext.trim()) return;
     if (!backend) {
       setError('Backend is not ready');
       return;
     }
+
+    const agent = Actor.agentOf(backend);
+    const ibe_principal =
+      (await agent?.getPrincipal()) || Principal.anonymous();
+
     setBusy(true);
     setError(undefined);
     try {
@@ -51,7 +63,6 @@ export const IBECipher = ({ backend, principal }: IBECipherProps) => {
       setEncryptedText('Preparing IBE-encryption...');
       const message_encoded = new TextEncoder().encode(plaintext);
       const seed = platformCrypto.getRandomBytes(32);
-      const ibe_principal = principal || Principal.fromText('2vxsx-fae'); // Use provided principal or fallback
 
       // Perform IBE encryption
       setEncryptedText(
@@ -89,14 +100,13 @@ export const IBECipher = ({ backend, principal }: IBECipherProps) => {
       setDecryptedText('Fetching IBE decryption key...');
       const ek_bytes_hex =
         await backend.encrypted_ibe_decryption_key_for_caller(tsk.public_key());
-      setDecryptedText(
-        'Fetching IBE enryption key (needed for verification)...',
-      );
+      setDecryptedText('Fetching IBE enryption key...');
       console.log('ek_bytes_hex', ek_bytes_hex);
       const pk_bytes_hex = await backend.ibe_encryption_key();
       console.log('pk_bytes_hex', pk_bytes_hex);
-      const ibe_principal = principal || Principal.fromText('2vxsx-fae');
-      console.log('ibe_principal', ibe_principal);
+      const agent = Actor.agentOf(backend);
+      const ibe_principal =
+        (await agent?.getPrincipal()) || Principal.anonymous();
 
       const k_bytes = tsk.decrypt(
         hex_decode(ek_bytes_hex),
@@ -110,8 +120,7 @@ export const IBECipher = ({ backend, principal }: IBECipherProps) => {
       const ibe_plaintext = ibe_ciphertext.decrypt(k_bytes);
       setDecryptedText(new TextDecoder().decode(ibe_plaintext));
     } catch (error) {
-      console.log('error', error);
-      setError(`Error occurred during decryption: ${(error as Error).message}`);
+      setError(`Error occurred during decryption: ${error}`);
     } finally {
       setBusy(false);
     }
@@ -149,7 +158,9 @@ export const IBECipher = ({ backend, principal }: IBECipherProps) => {
         <Text style={styles.label}>Encrypted Text:</Text>
         <View style={styles.encryptedContainer}>
           <ScrollView style={styles.scrollView}>
-            <Text style={styles.resultText}>{encryptedText}</Text>
+            <Text style={styles.resultText}>
+              {encryptedText || 'Encrypted text will appear here'}
+            </Text>
           </ScrollView>
         </View>
         <Pressable
@@ -206,11 +217,15 @@ const styles = StyleSheet.create({
   },
   encryptedContainer: {
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 4,
     minHeight: 100,
   },
   scrollView: {
     maxHeight: 150,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
   },
   decryptedContainer: {
     width: '100%',
@@ -235,8 +250,6 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 16,
     padding: 8,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 4,
     flexWrap: 'wrap',
   },
   errorText: {
