@@ -17,7 +17,7 @@ import { hex_decode, hex_encode } from '@/utils/hex';
 import { platformCrypto } from '@/crypto/platformCrypto';
 
 interface IBECipherProps {
-  backend: ActorSubclass<_SERVICE> | undefined;
+  backend: ActorSubclass<_SERVICE>;
 }
 
 /**
@@ -32,7 +32,7 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
   const [error, setError] = useState<string | undefined>();
   const { width } = useWindowDimensions();
 
-  const agent = backend ? Actor.agentOf(backend) : undefined;
+  const agent = Actor.agentOf(backend);
 
   useEffect(() => {
     setPlaintext('');
@@ -42,12 +42,7 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
 
   const handleEncrypt = async () => {
     if (!plaintext.trim()) return;
-    if (!backend) {
-      setError('Backend is not ready');
-      return;
-    }
 
-    const agent = Actor.agentOf(backend);
     const ibe_principal =
       (await agent?.getPrincipal()) || Principal.anonymous();
 
@@ -104,7 +99,6 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
       console.log('ek_bytes_hex', ek_bytes_hex);
       const pk_bytes_hex = await backend.ibe_encryption_key();
       console.log('pk_bytes_hex', pk_bytes_hex);
-      const agent = Actor.agentOf(backend);
       const ibe_principal =
         (await agent?.getPrincipal()) || Principal.anonymous();
 

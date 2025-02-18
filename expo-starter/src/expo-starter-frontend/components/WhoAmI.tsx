@@ -16,7 +16,7 @@ import {
 } from './styles';
 
 interface WhoAmIProps {
-  backend: ActorSubclass<_SERVICE> | undefined;
+  backend: ActorSubclass<_SERVICE>;
 }
 
 /**
@@ -26,7 +26,7 @@ export const WhoAmI = ({ backend }: WhoAmIProps) => {
   const [who, setWho] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const agent = backend ? Actor.agentOf(backend) : undefined;
+  const agent = Actor.agentOf(backend);
   const { width } = useWindowDimensions();
 
   useEffect(() => {

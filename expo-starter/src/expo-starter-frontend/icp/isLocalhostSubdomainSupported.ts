@@ -1,6 +1,13 @@
+import { Platform } from 'react-native';
+
 // This function only checks Chrome and Safari on macOS,
 // as it's intended for local testing of Expo apps
 export const isLocalhostSubdomainSupported = (): boolean => {
+  // Return false for mobile platforms
+  if (Platform.OS === 'ios' || Platform.OS === 'android') {
+    return false;
+  }
+
   if (!window?.location?.origin?.includes('localhost')) {
     return false;
   }

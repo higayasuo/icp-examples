@@ -7,7 +7,17 @@ export default defineConfig({
     globals: true,
     setupFiles: [resolve(__dirname, './vitest.setup.ts')],
     deps: {
-      inline: ['expo-crypto', 'react-native'],
+      optimizer: {
+        web: {
+          include: [
+            '@dfinity/agent',
+            '@dfinity/auth-client',
+            '@dfinity/identity',
+            'expo-crypto',
+            'react-native',
+          ],
+        },
+      },
     },
   },
   resolve: {
