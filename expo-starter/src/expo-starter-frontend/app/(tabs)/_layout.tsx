@@ -1,10 +1,8 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs, useRouter } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { LogIn } from '@/components/LogIn';
 import { LogOut } from '@/components/LogOut';
-import Colors from '@/constants/Colors';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 /**
@@ -18,14 +16,13 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const { identity, login, logout } = useAuthContext();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#007AFF',
         headerRight: () =>
           identity ? <LogOut onLogout={logout} /> : <LogIn onLogin={login} />,
       }}
