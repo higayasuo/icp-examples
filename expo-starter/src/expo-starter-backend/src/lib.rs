@@ -13,6 +13,35 @@ fn whoami() -> String {
 }
 
 #[ic_cdk::update]
+async fn symmetric_key_verification_key() -> String {
+    let request = VetKDPublicKeyRequest {
+        canister_id: None,
+        derivation_path: vec![b"symmetric_key".to_vec()],
+        key_id: bls12_381_g2_test_key_1(),
+    };
+
+    let response = vetkd_public_key(request).await;
+
+    hex::encode(response.public_key)
+}
+
+#[ic_cdk::update]
+async fn encrypted_symmetric_key_for_caller(encryption_public_key: Vec<u8>) -> String {
+    debug_println_caller("encrypted_symmetric_key_for_caller");
+
+    let request = VetKDEncryptedKeyRequest {
+        derivation_id: ic_cdk::caller().as_slice().to_vec(),
+        derivation_path: vec![b"symmetric_key".to_vec()],
+        key_id: bls12_381_g2_test_key_1(),
+        encryption_public_key,
+    };
+
+    let response = vetkd_derive_encrypted_key(request).await;
+
+    hex::encode(response.encrypted_key)
+}
+
+#[ic_cdk::update]
 async fn ibe_encryption_key() -> String {
     let request = VetKDPublicKeyRequest {
         canister_id: None,

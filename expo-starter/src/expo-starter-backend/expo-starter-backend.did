@@ -15,7 +15,9 @@ type VetKDPublicKeyRequest = record {
 };
 service : {
   encrypted_ibe_decryption_key_for_caller : (blob) -> (text);
+  encrypted_symmetric_key_for_caller : (blob) -> (text);
   ibe_encryption_key : () -> (text);
+  symmetric_key_verification_key : () -> (text);
   vetkd_derive_encrypted_key : (VetKDEncryptedKeyRequest) -> (
       VetKDEncryptedKeyReply,
     );

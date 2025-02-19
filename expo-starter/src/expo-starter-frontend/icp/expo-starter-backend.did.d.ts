@@ -24,7 +24,12 @@ export interface _SERVICE {
     [Uint8Array | number[]],
     string
   >,
+  'encrypted_symmetric_key_for_caller' : ActorMethod<
+    [Uint8Array | number[]],
+    string
+  >,
   'ibe_encryption_key' : ActorMethod<[], string>,
+  'symmetric_key_verification_key' : ActorMethod<[], string>,
   'vetkd_derive_encrypted_key' : ActorMethod<
     [VetKDEncryptedKeyRequest],
     VetKDEncryptedKeyReply

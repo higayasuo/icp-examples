@@ -15,11 +15,7 @@ import { Principal } from '@dfinity/principal';
 import { platformCrypto } from '@/crypto/platformCrypto';
 import { principalFromAgent } from '@/icp/principalFromAgent';
 import { ibeEncrypt } from '@/icp/ibeEncrypt';
-import {
-  ibeDecrypt,
-  getTransportPublicKey,
-  createTransportSecretKey,
-} from '@/icp/ibeDecrypt';
+import { ibeDecrypt, createTransportSecretKey } from '@/icp/ibeDecrypt';
 import { toHex } from '@/icp/hex';
 
 interface IBECipherProps {
@@ -77,7 +73,7 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
       const principal = await principalFromAgent(agent);
       const tskSeed = platformCrypto.getRandomBytes(32);
       const tsk = createTransportSecretKey(tskSeed);
-      const transportPublicKey = getTransportPublicKey(tsk);
+      const transportPublicKey = tsk.getPublicKey();
       const encryptedKey =
         await backend.encrypted_ibe_decryption_key_for_caller(
           transportPublicKey,

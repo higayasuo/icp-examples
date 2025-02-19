@@ -22,7 +22,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text],
         [],
       ),
+    'encrypted_symmetric_key_for_caller' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Text],
+        [],
+      ),
     'ibe_encryption_key' : IDL.Func([], [IDL.Text], []),
+    'symmetric_key_verification_key' : IDL.Func([], [IDL.Text], []),
     'vetkd_derive_encrypted_key' : IDL.Func(
         [VetKDEncryptedKeyRequest],
         [VetKDEncryptedKeyReply],
