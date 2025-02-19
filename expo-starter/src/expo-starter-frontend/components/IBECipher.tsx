@@ -12,10 +12,15 @@ import { buttonStyles, buttonTextStyles, disabledButtonStyles } from './styles';
 import { ActorSubclass, Actor } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Principal } from '@dfinity/principal';
-import * as vetkd from 'ic-vetkd-utils';
 import { platformCrypto } from '@/crypto/platformCrypto';
 import { principalFromAgent } from '@/icp/principalFromAgent';
 import { ibeEncrypt } from '@/icp/ibeEncrypt';
+import {
+  ibeDecrypt,
+  getTransportPublicKey,
+  createTransportSecretKey,
+} from '@/icp/ibeDecrypt';
+import { toHex } from '@/icp/hex';
 
 interface IBECipherProps {
   backend: ActorSubclass<_SERVICE>;
@@ -55,7 +60,7 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
         publicKey,
         seed,
       });
-      const encryptedHex = Buffer.from(encryptedBytes).toString('hex');
+      const encryptedHex = toHex(encryptedBytes);
       setEncryptedText(encryptedHex);
     } catch (error) {
       setError(`Error occurred during encryption: ${(error as Error).message}`);
@@ -65,38 +70,27 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
   };
 
   const handleDecrypt = async () => {
-    if (!encryptedText) return;
-    if (!backend) {
-      setError('Backend is not ready');
-      return;
-    }
     setBusy(true);
     setError(undefined);
     try {
-      setDecryptedText('Preparing IBE-decryption...');
-      const tsk_seed = platformCrypto.getRandomBytes(32);
-      const tsk = new vetkd.TransportSecretKey(tsk_seed);
-      setDecryptedText('Fetching IBE decryption key...');
-      const ek_bytes_hex =
-        await backend.encrypted_ibe_decryption_key_for_caller(tsk.public_key());
-      setDecryptedText('Fetching IBE enryption key...');
-      console.log('ek_bytes_hex', ek_bytes_hex);
-      const pk_bytes_hex = await backend.ibe_encryption_key();
-      console.log('pk_bytes_hex', pk_bytes_hex);
-      const ibe_principal =
-        (await agent?.getPrincipal()) || Principal.anonymous();
-
-      const k_bytes = tsk.decrypt(
-        Buffer.from(ek_bytes_hex, 'hex'),
-        Buffer.from(pk_bytes_hex, 'hex'),
-        ibe_principal.toUint8Array(),
-      );
-      console.log('k_bytes', k_bytes);
-      const ibe_ciphertext = vetkd.IBECiphertext.deserialize(
-        Buffer.from(encryptedText, 'hex'),
-      );
-      const ibe_plaintext = ibe_ciphertext.decrypt(k_bytes);
-      setDecryptedText(new TextDecoder().decode(ibe_plaintext));
+      setDecryptedText('IBE-decryption starting...');
+      const principal = await principalFromAgent(agent);
+      const tskSeed = platformCrypto.getRandomBytes(32);
+      const tsk = createTransportSecretKey(tskSeed);
+      const transportPublicKey = getTransportPublicKey(tsk);
+      const encryptedKey =
+        await backend.encrypted_ibe_decryption_key_for_caller(
+          transportPublicKey,
+        );
+      const publicKey = await backend.ibe_encryption_key();
+      const decryptedText = await ibeDecrypt({
+        ciphertext: encryptedText,
+        principal,
+        encryptedKey,
+        publicKey,
+        tsk,
+      });
+      setDecryptedText(decryptedText);
     } catch (error) {
       setError(`Error occurred during decryption: ${error}`);
     } finally {
