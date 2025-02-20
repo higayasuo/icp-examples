@@ -5,7 +5,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: [resolve(__dirname, './vitest.setup.ts')],
     deps: {
       optimizer: {
         web: {
@@ -15,6 +14,7 @@ export default defineConfig({
             '@dfinity/identity',
             'expo-crypto',
             'react-native',
+            'react-native-aes-gcm-crypto',
           ],
         },
       },

@@ -45,19 +45,40 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
   const handleEncrypt = async () => {
     setBusy(true);
     setError(undefined);
+    const startTime = performance.now();
     try {
       setEncryptedText('IBE encryption starting...');
+      console.log('IBE encryption starting...');
+
+      const t1 = performance.now();
       const principal = await principalFromAgent(agent);
+      console.log(`Getting principal took: ${performance.now() - t1}ms`);
+
+      const t2 = performance.now();
       const publicKey = await backend.ibe_encryption_key();
+      console.log(`Getting public key took: ${performance.now() - t2}ms`);
+
+      const t3 = performance.now();
       const seed = platformCrypto.getRandomBytes(32);
+      console.log(`Generating random bytes took: ${performance.now() - t3}ms`);
+
+      const t4 = performance.now();
       const encryptedBytes = await ibeEncrypt({
         plaintext,
         principal,
         publicKey,
         seed,
       });
+      console.log(`IBE encryption took: ${performance.now() - t4}ms`);
+
+      const t5 = performance.now();
       const encryptedHex = toHex(encryptedBytes);
+      console.log(`Converting to hex took: ${performance.now() - t5}ms`);
+
       setEncryptedText(encryptedHex);
+      console.log(
+        `Total encryption process took: ${performance.now() - startTime}ms`,
+      );
     } catch (error) {
       setError(`Error occurred during encryption: ${(error as Error).message}`);
     } finally {
@@ -68,17 +89,42 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
   const handleDecrypt = async () => {
     setBusy(true);
     setError(undefined);
+    const startTime = performance.now();
     try {
       setDecryptedText('IBE-decryption starting...');
+      console.log('IBE decryption starting...');
+
+      const t1 = performance.now();
       const principal = await principalFromAgent(agent);
+      console.log(`Getting principal took: ${performance.now() - t1}ms`);
+
+      const t2 = performance.now();
       const tskSeed = platformCrypto.getRandomBytes(32);
+      console.log(`Generating TSK seed took: ${performance.now() - t2}ms`);
+
+      const t3 = performance.now();
       const tsk = createTransportSecretKey(tskSeed);
       const transportPublicKey = tsk.getPublicKey();
+      console.log(
+        `Creating TSK and getting public key took: ${performance.now() - t3}ms`,
+      );
+
+      const t4 = performance.now();
       const encryptedKey =
         await backend.encrypted_ibe_decryption_key_for_caller(
           transportPublicKey,
         );
+      console.log(
+        `Getting encrypted IBE decryption key took: ${
+          performance.now() - t4
+        }ms`,
+      );
+
+      const t5 = performance.now();
       const publicKey = await backend.ibe_encryption_key();
+      console.log(`Getting public key took: ${performance.now() - t5}ms`);
+
+      const t6 = performance.now();
       const decryptedText = await ibeDecrypt({
         ciphertext: encryptedText,
         principal,
@@ -86,7 +132,12 @@ export const IBECipher = ({ backend }: IBECipherProps) => {
         publicKey,
         tsk,
       });
+      console.log(`IBE decryption took: ${performance.now() - t6}ms`);
+
       setDecryptedText(decryptedText);
+      console.log(
+        `Total decryption process took: ${performance.now() - startTime}ms`,
+      );
     } catch (error) {
       setError(`Error occurred during decryption: ${error}`);
     } finally {

@@ -1,126 +1,152 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { StandardCrypto, textEncodeLite } from '../StandardCrypto';
+import { describe, it, expect } from 'vitest';
+import { StandardCrypto } from '../StandardCrypto';
+import crypto from 'crypto';
 
-// Mock crypto API
-const mockCrypto = {
-  getRandomValues: (array: Uint8Array) => {
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-    return array;
-  },
-  subtle: {
-    digest: async (algorithm: string, data: Uint8Array) => {
-      // Simple mock implementation for testing
-      if (algorithm === 'SHA-256') {
-        if (data.length === 0) {
-          return new Uint8Array(
-            Buffer.from(
-              '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=',
-              'base64',
-            ),
-          );
-        }
-        if (new TextDecoder().decode(data) === 'test') {
-          return new Uint8Array(
-            Buffer.from(
-              'n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=',
-              'base64',
-            ),
-          );
-        }
-        // For other inputs, generate a random hash
-        const result = new Uint8Array(32);
-        for (let i = 0; i < 32; i++) {
-          result[i] = Math.floor(Math.random() * 256);
-        }
-        return result;
-      }
-      throw new Error(`Unsupported algorithm: ${algorithm}`);
-    },
-  },
-};
+// Helper function to encrypt using Node.js crypto module with AES-CBC and HMAC
+async function nodeAesEncrypt(
+  data: Uint8Array,
+  key: Uint8Array,
+): Promise<Uint8Array> {
+  const iv = crypto.randomBytes(16);
+  const hmacKey = crypto.randomBytes(32);
 
-// Spy on the mock functions
-vi.spyOn(mockCrypto, 'getRandomValues');
-vi.spyOn(mockCrypto.subtle, 'digest');
+  // Encrypt data
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+
+  // Combine IV, HMAC key, and encrypted data
+  const encryptedData = Buffer.concat([iv, hmacKey, encrypted]);
+
+  // Generate HMAC (full 32 bytes)
+  const hmac = crypto.createHmac('sha256', hmacKey);
+  hmac.update(encryptedData);
+  const fullHmac = hmac.digest();
+
+  return Buffer.concat([encryptedData, fullHmac]);
+}
+
+// Helper function to decrypt using Node.js crypto module with AES-CBC and HMAC
+async function nodeAesDecrypt(
+  data: Uint8Array,
+  key: Uint8Array,
+): Promise<Uint8Array> {
+  const iv = data.slice(0, 16);
+  const hmacKey = data.slice(16, 48);
+  const encrypted = data.slice(48, -32);
+  const receivedHmac = data.slice(-32);
+
+  // Verify HMAC
+  const hmac = crypto.createHmac('sha256', hmacKey);
+  hmac.update(data.slice(0, -32));
+  const calculatedHmac = hmac.digest();
+
+  if (!calculatedHmac.equals(receivedHmac)) {
+    throw new Error('Invalid HMAC');
+  }
+
+  // Decrypt data
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]);
+}
 
 describe('StandardCrypto', () => {
-  let crypto: StandardCrypto;
+  const standardCrypto = new StandardCrypto();
 
-  beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks();
-    // Set up global crypto
-    global.crypto = mockCrypto as unknown as Crypto;
-    crypto = new StandardCrypto();
-  });
+  describe('AES-CBC encryption/decryption with HMAC', () => {
+    it('should encrypt and decrypt binary data correctly', async () => {
+      const key = crypto.randomBytes(32);
+      const testData = new Uint8Array([1, 2, 3, 4, 5]);
 
-  describe('getRandomBytes', () => {
-    it('should return Uint8Array of specified size', () => {
-      const size = 32;
-      const result = crypto.getRandomBytes(size);
-      expect(result).toBeInstanceOf(Uint8Array);
-      expect(result.length).toBe(size);
-      expect(mockCrypto.getRandomValues).toHaveBeenCalled();
+      // Encrypt with Node.js crypto
+      const encrypted = await nodeAesEncrypt(testData, key);
+      expect(encrypted.length).toBeGreaterThan(testData.length);
+
+      // Decrypt with StandardCrypto
+      const decrypted = await standardCrypto.aesDecryptAsync(encrypted, key);
+      expect(Array.from(decrypted)).toEqual(Array.from(testData));
+
+      // Encrypt with StandardCrypto
+      const encryptedStandard = await standardCrypto.aesEncryptAsync(
+        testData,
+        key,
+      );
+      expect(encryptedStandard.length).toBeGreaterThan(testData.length);
+
+      // Decrypt with Node.js crypto
+      const decryptedNode = await nodeAesDecrypt(encryptedStandard, key);
+      expect(Array.from(decryptedNode)).toEqual(Array.from(testData));
     });
 
-    it('should generate different values on each call', () => {
-      const size = 32;
-      const result1 = crypto.getRandomBytes(size);
-      const result2 = crypto.getRandomBytes(size);
-      expect(result1).not.toEqual(result2);
-      expect(mockCrypto.getRandomValues).toHaveBeenCalledTimes(2);
-    });
-  });
+    it('should encrypt and decrypt large binary data', async () => {
+      const key = crypto.randomBytes(32);
+      const testData = crypto.randomBytes(1024);
 
-  describe('sha256Async', () => {
-    it('should generate base64 encoded SHA-256 hash', async () => {
-      const input = 'test';
-      const result = await crypto.sha256Async(input);
-      expect(result).toBe('n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=');
-      expect(mockCrypto.subtle.digest).toHaveBeenCalled();
-    });
+      // Test StandardCrypto encryption with Node.js decryption
+      const encryptedStandard = await standardCrypto.aesEncryptAsync(
+        testData,
+        key,
+      );
+      const decryptedNode = await nodeAesDecrypt(encryptedStandard, key);
+      expect(Array.from(decryptedNode)).toEqual(Array.from(testData));
 
-    it('should generate different hashes for different inputs', async () => {
-      const input1 = 'test1';
-      const input2 = 'test2';
-      const result1 = await crypto.sha256Async(input1);
-      const result2 = await crypto.sha256Async(input2);
-      expect(result1).not.toBe(result2);
-      expect(mockCrypto.subtle.digest).toHaveBeenCalledTimes(2);
+      // Test Node.js encryption with StandardCrypto decryption
+      const encryptedNode = await nodeAesEncrypt(testData, key);
+      const decryptedStandard = await standardCrypto.aesDecryptAsync(
+        encryptedNode,
+        key,
+      );
+      expect(Array.from(decryptedStandard)).toEqual(Array.from(testData));
     });
 
-    it('should handle empty string', async () => {
-      const input = '';
-      const result = await crypto.sha256Async(input);
-      expect(result).toBe('47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=');
-      expect(mockCrypto.subtle.digest).toHaveBeenCalled();
-    });
-  });
+    it('should generate different ciphertexts for same data', async () => {
+      const key = crypto.randomBytes(32);
+      const testData = new Uint8Array([1, 2, 3, 4, 5]);
 
-  describe('textEncodeLite', () => {
-    it('should encode ASCII string to Uint8Array', () => {
-      const input = 'Hello';
-      const result = textEncodeLite(input);
-      expect(result).toBeInstanceOf(Uint8Array);
-      expect(result.length).toBe(input.length);
-      expect(Array.from(result)).toEqual([72, 101, 108, 108, 111]); // ASCII values for 'Hello'
-    });
+      const encrypted1 = await standardCrypto.aesEncryptAsync(testData, key);
+      const encrypted2 = await standardCrypto.aesEncryptAsync(testData, key);
 
-    it('should handle empty string', () => {
-      const input = '';
-      const result = textEncodeLite(input);
-      expect(result).toBeInstanceOf(Uint8Array);
-      expect(result.length).toBe(0);
+      expect(Buffer.from(encrypted1)).not.toEqual(Buffer.from(encrypted2));
+
+      const decrypted1 = await nodeAesDecrypt(encrypted1, key);
+      const decrypted2 = await nodeAesDecrypt(encrypted2, key);
+
+      expect(Array.from(decrypted1)).toEqual(Array.from(testData));
+      expect(Array.from(decrypted2)).toEqual(Array.from(testData));
     });
 
-    it('should handle special characters', () => {
-      const input = '!@#$%';
-      const result = textEncodeLite(input);
-      expect(result).toBeInstanceOf(Uint8Array);
-      expect(result.length).toBe(input.length);
-      expect(Array.from(result)).toEqual([33, 64, 35, 36, 37]); // ASCII values for '!@#$%'
+    it('should fail to decrypt with wrong key', async () => {
+      const key1 = crypto.randomBytes(32);
+      const key2 = crypto.randomBytes(32);
+      const testData = new Uint8Array([1, 2, 3, 4, 5]);
+
+      const encrypted = await standardCrypto.aesEncryptAsync(testData, key1);
+
+      await expect(
+        standardCrypto.aesDecryptAsync(encrypted, key2),
+      ).rejects.toThrow();
+    });
+
+    it('should fail to decrypt with tampered HMAC', async () => {
+      const key = crypto.randomBytes(32);
+      const testData = new Uint8Array([1, 2, 3, 4, 5]);
+
+      const encrypted = await standardCrypto.aesEncryptAsync(testData, key);
+      // Tamper with HMAC
+      encrypted[encrypted.length - 32] ^= 1;
+
+      await expect(
+        standardCrypto.aesDecryptAsync(encrypted, key),
+      ).rejects.toThrow('Invalid HMAC');
+    });
+
+    it('should handle empty data', async () => {
+      const key = crypto.randomBytes(32);
+      const testData = new Uint8Array(0);
+
+      const encrypted = await standardCrypto.aesEncryptAsync(testData, key);
+      const decrypted = await nodeAesDecrypt(encrypted, key);
+
+      expect(Array.from(decrypted)).toEqual(Array.from(testData));
     });
   });
 });
