@@ -3,8 +3,8 @@ import { TransportSecretKeyWrapper } from './TransportSecretKeyWrapper';
 
 export interface CreateSymmetricKeyParams {
   seed: Uint8Array;
-  encryptedKey: string;
-  publicKey: string;
+  encryptedKey: Uint8Array;
+  publicKey: Uint8Array;
   principal: Principal;
   keyLength?: number;
   purpose?: string;
@@ -21,7 +21,7 @@ export const createSymmetricKey = ({
   publicKey,
   principal,
   keyLength = 32,
-  purpose = 'aes-256-gcm',
+  purpose = 'aes-256-cbc-hmac-sha256',
 }: CreateSymmetricKeyParams): Uint8Array => {
   const tsk = new TransportSecretKeyWrapper(seed);
   return tsk.decryptAndHash({

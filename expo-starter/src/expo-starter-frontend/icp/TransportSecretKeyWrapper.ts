@@ -1,6 +1,5 @@
 import { Principal } from '@dfinity/principal';
 import * as vetkd from 'ic-vetkd-utils';
-import { fromHex } from './hex';
 
 export interface DecryptParams {
   encryptedKey: Uint8Array;
