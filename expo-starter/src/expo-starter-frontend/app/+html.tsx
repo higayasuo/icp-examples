@@ -11,6 +11,21 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
+          httpEquiv="Content-Security-Policy"
+          content="default-src 'self';
+            script-src 'self' '/assets' 'unsafe-eval' 'unsafe-inline' http://192.168.0.*:* https://192.168.0.*:*;
+            connect-src 'self' http://localhost:* http://*.localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://identity.ic0.app https://ic0.app https://*.ic0.app https://*.raw.ic0.app;
+            img-src 'self' data:;
+            style-src * 'unsafe-inline';
+            style-src-elem * 'unsafe-inline';
+            font-src *;
+            object-src 'none';
+            base-uri 'self';
+            frame-ancestors 'none';
+            form-action 'self';
+            upgrade-insecure-requests;"
+        />
+        <meta
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />

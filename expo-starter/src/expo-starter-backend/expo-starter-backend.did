@@ -1,3 +1,4 @@
+type AsymmetricKeysReply = record { encrypted_key : blob; public_key : blob };
 type VetKDCurve = variant { bls12_381_g2 };
 type VetKDEncryptedKeyReply = record { encrypted_key : blob };
 type VetKDEncryptedKeyRequest = record {
@@ -14,10 +15,9 @@ type VetKDPublicKeyRequest = record {
   derivation_path : vec blob;
 };
 service : {
-  encrypted_ibe_decryption_key_for_caller : (blob) -> (text);
-  encrypted_symmetric_key_for_caller : (blob) -> (text);
-  ibe_encryption_key : () -> (text);
-  symmetric_key_verification_key : () -> (text);
+  asymmetric_encrypted_key : (blob) -> (blob);
+  asymmetric_keys : (blob) -> (AsymmetricKeysReply);
+  asymmetric_public_key : () -> (blob);
   vetkd_derive_encrypted_key : (VetKDEncryptedKeyRequest) -> (
       VetKDEncryptedKeyReply,
     );

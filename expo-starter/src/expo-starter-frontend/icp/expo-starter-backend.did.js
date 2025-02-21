@@ -1,4 +1,8 @@
 export const idlFactory = ({ IDL }) => {
+  const AsymmetricKeysReply = IDL.Record({
+    'encrypted_key' : IDL.Vec(IDL.Nat8),
+    'public_key' : IDL.Vec(IDL.Nat8),
+  });
   const VetKDCurve = IDL.Variant({ 'bls12_381_g2' : IDL.Null });
   const VetKDKeyId = IDL.Record({ 'name' : IDL.Text, 'curve' : VetKDCurve });
   const VetKDEncryptedKeyRequest = IDL.Record({
@@ -17,18 +21,17 @@ export const idlFactory = ({ IDL }) => {
   });
   const VetKDPublicKeyReply = IDL.Record({ 'public_key' : IDL.Vec(IDL.Nat8) });
   return IDL.Service({
-    'encrypted_ibe_decryption_key_for_caller' : IDL.Func(
+    'asymmetric_encrypted_key' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [IDL.Text],
+        [IDL.Vec(IDL.Nat8)],
         [],
       ),
-    'encrypted_symmetric_key_for_caller' : IDL.Func(
+    'asymmetric_keys' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
-        [IDL.Text],
+        [AsymmetricKeysReply],
         [],
       ),
-    'ibe_encryption_key' : IDL.Func([], [IDL.Text], []),
-    'symmetric_key_verification_key' : IDL.Func([], [IDL.Text], []),
+    'asymmetric_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'vetkd_derive_encrypted_key' : IDL.Func(
         [VetKDEncryptedKeyRequest],
         [VetKDEncryptedKeyReply],

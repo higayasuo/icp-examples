@@ -3,8 +3,8 @@ import * as vetkd from 'ic-vetkd-utils';
 import { fromHex } from './hex';
 
 export interface DecryptParams {
-  encryptedKey: string;
-  publicKey: string;
+  encryptedKey: Uint8Array;
+  publicKey: Uint8Array;
   principal: Principal;
 }
 
@@ -42,11 +42,8 @@ export class TransportSecretKeyWrapper {
    * @returns {Uint8Array} The decrypted key bytes
    */
   decrypt({ encryptedKey, publicKey, principal }: DecryptParams): Uint8Array {
-    const ekBytes = fromHex(encryptedKey);
-    console.log('ekBytes.length', ekBytes.length);
-    const pkBytes = fromHex(publicKey);
     const principalBytes = principal.toUint8Array();
-    return this.tsk.decrypt(ekBytes, pkBytes, principalBytes);
+    return this.tsk.decrypt(encryptedKey, publicKey, principalBytes);
   }
 
   /**
@@ -61,13 +58,11 @@ export class TransportSecretKeyWrapper {
     keyLength,
     purpose,
   }: DecryptAndHashParams): Uint8Array {
-    const ekBytes = fromHex(encryptedKey);
-    const pkBytes = fromHex(publicKey);
     const principalBytes = principal.toUint8Array();
     const purposeBytes = new TextEncoder().encode(purpose);
     return this.tsk.decrypt_and_hash(
-      ekBytes,
-      pkBytes,
+      encryptedKey,
+      publicKey,
       principalBytes,
       keyLength,
       purposeBytes,

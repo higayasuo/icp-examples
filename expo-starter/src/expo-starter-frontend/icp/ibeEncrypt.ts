@@ -1,11 +1,10 @@
 import { Principal } from '@dfinity/principal';
 import * as vetkd from 'ic-vetkd-utils';
-import { fromHex } from './hex';
 
 export interface IBEEncryptParams {
-  plaintext: string;
+  data: Uint8Array;
   principal: Principal;
-  publicKey: string;
+  publicKey: Uint8Array;
   seed: Uint8Array;
 }
 
@@ -15,19 +14,17 @@ export interface IBEEncryptParams {
  * @returns {Promise<Uint8Array>} The encrypted data.
  */
 export const ibeEncrypt = async ({
-  plaintext,
+  data,
   principal,
   publicKey,
   seed,
 }: IBEEncryptParams): Promise<Uint8Array> => {
   const principalBytes = principal.toUint8Array();
-  const pkBytes = fromHex(publicKey);
-  const messageBytes = new TextEncoder().encode(plaintext);
 
   const ciphertext = vetkd.IBECiphertext.encrypt(
-    pkBytes,
+    publicKey,
     principalBytes,
-    messageBytes,
+    data,
     seed,
   );
   return ciphertext.serialize();

@@ -1,11 +1,12 @@
 use crate::types::{
-    VetKDCurve, VetKDEncryptedKeyReply, VetKDEncryptedKeyRequest, VetKDKeyId, VetKDPublicKeyReply,
+    AsymmetricKeysReply, VetKDEncryptedKeyReply, VetKDEncryptedKeyRequest, VetKDPublicKeyReply,
     VetKDPublicKeyRequest,
 };
-use crate::vet_keys::{vetkd_derive_encrypted_key, vetkd_public_key};
+use crate::vet_keys::{encrypted_key, public_key};
 
 mod types;
 mod vet_keys;
+mod vet_keys_system;
 
 #[ic_cdk::query]
 fn whoami() -> String {
@@ -13,77 +14,23 @@ fn whoami() -> String {
 }
 
 #[ic_cdk::update]
-async fn symmetric_key_verification_key() -> String {
-    let request = VetKDPublicKeyRequest {
-        canister_id: None,
-        derivation_path: vec![b"symmetric_key".to_vec()],
-        key_id: bls12_381_g2_test_key_1(),
-    };
-
-    let response = vetkd_public_key(request).await;
-
-    hex::encode(response.public_key)
-}
-
-#[ic_cdk::update]
-async fn encrypted_symmetric_key_for_caller(encryption_public_key: Vec<u8>) -> String {
-    debug_println_caller("encrypted_symmetric_key_for_caller");
-
-    let request = VetKDEncryptedKeyRequest {
-        derivation_id: ic_cdk::caller().as_slice().to_vec(),
-        derivation_path: vec![b"symmetric_key".to_vec()],
-        key_id: bls12_381_g2_test_key_1(),
-        encryption_public_key,
-    };
-
-    let response = vetkd_derive_encrypted_key(request).await;
-
-    hex::encode(response.encrypted_key)
-}
-
-#[ic_cdk::update]
-async fn ibe_encryption_key() -> String {
-    let request = VetKDPublicKeyRequest {
-        canister_id: None,
-        derivation_path: vec![b"ibe_encryption".to_vec()],
-        key_id: bls12_381_g2_test_key_1(),
-    };
-
-    let response = vetkd_public_key(request).await;
-
-    hex::encode(response.public_key)
-}
-
-#[ic_cdk::update]
-async fn encrypted_ibe_decryption_key_for_caller(encryption_public_key: Vec<u8>) -> String {
-    debug_println_caller("encrypted_ibe_decryption_key_for_caller");
-
-    let request = VetKDEncryptedKeyRequest {
-        derivation_id: ic_cdk::caller().as_slice().to_vec(),
-        derivation_path: vec![b"ibe_encryption".to_vec()],
-        key_id: bls12_381_g2_test_key_1(),
-        encryption_public_key,
-    };
-
-    let response = vetkd_derive_encrypted_key(request).await;
-
-    hex::encode(response.encrypted_key)
-}
-
-fn bls12_381_g2_test_key_1() -> VetKDKeyId {
-    VetKDKeyId {
-        curve: VetKDCurve::Bls12_381_G2,
-        name: "test_key_1".to_string(),
+async fn asymmetric_keys(transport_public_key: Vec<u8>) -> AsymmetricKeysReply {
+    let public_key = asymmetric_public_key().await;
+    let encrypted_key = asymmetric_encrypted_key(transport_public_key).await;
+    AsymmetricKeysReply {
+        public_key,
+        encrypted_key,
     }
 }
 
-fn debug_println_caller(method_name: &str) {
-    ic_cdk::println!(
-        "{}: caller: {} (isAnonymous: {})",
-        method_name,
-        ic_cdk::caller().to_text(),
-        ic_cdk::caller() == candid::Principal::anonymous()
-    );
+#[ic_cdk::update]
+async fn asymmetric_public_key() -> Vec<u8> {
+    public_key("asymmetric").await
+}
+
+#[ic_cdk::update]
+async fn asymmetric_encrypted_key(transport_public_key: Vec<u8>) -> Vec<u8> {
+    encrypted_key(transport_public_key, "asymmetric").await
 }
 
 ic_cdk::export_candid!();

@@ -1,5 +1,5 @@
 use candid::{CandidType, Principal};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub type CanisterId = Principal;
 
@@ -38,5 +38,11 @@ pub struct VetKDEncryptedKeyRequest {
 
 #[derive(CandidType)]
 pub struct VetKDEncryptedKeyReply {
+    pub encrypted_key: Vec<u8>,
+}
+
+#[derive(CandidType, Serialize)]
+pub struct AsymmetricKeysReply {
+    pub public_key: Vec<u8>,
     pub encrypted_key: Vec<u8>,
 }

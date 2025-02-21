@@ -7,17 +7,17 @@ import { fromHex } from './hex';
 export interface TSK {
   getPublicKey(): Uint8Array;
   decrypt(
-    encryptedKey: string,
-    publicKey: string,
+    encryptedKey: Uint8Array,
+    publicKey: Uint8Array,
     principal: Principal,
   ): Uint8Array;
 }
 
 export interface IBEDecryptParams {
-  ciphertext: string;
+  ciphertext: Uint8Array;
   principal: Principal;
-  encryptedKey: string;
-  publicKey: string;
+  encryptedKey: Uint8Array;
+  publicKey: Uint8Array;
   tsk: TransportSecretKeyWrapper;
 }
 
@@ -35,7 +35,7 @@ export const createTransportSecretKey = (
 /**
  * Decrypts a message using Identity-Based Encryption (IBE).
  * @param {IBEDecryptParams} params - The parameters for IBE decryption.
- * @returns {Promise<string>} The decrypted text.
+ * @returns {Promise<Uint8Array>} The decrypted data.
  */
 export const ibeDecrypt = async ({
   ciphertext,
@@ -43,9 +43,8 @@ export const ibeDecrypt = async ({
   encryptedKey,
   publicKey,
   tsk,
-}: IBEDecryptParams): Promise<string> => {
+}: IBEDecryptParams): Promise<Uint8Array> => {
   const keyBytes = tsk.decrypt({ encryptedKey, publicKey, principal });
-  const ciphertextObj = vetkd.IBECiphertext.deserialize(fromHex(ciphertext));
-  const decryptedBytes = ciphertextObj.decrypt(keyBytes);
-  return new TextDecoder().decode(decryptedBytes);
+  const ciphertextObj = vetkd.IBECiphertext.deserialize(ciphertext);
+  return ciphertextObj.decrypt(keyBytes);
 };
