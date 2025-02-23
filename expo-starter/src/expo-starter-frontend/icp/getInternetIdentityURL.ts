@@ -9,7 +9,7 @@ import { HOST_ADDRESS } from './constants';
  * @returns {string} The Internet Identity URL.
  */
 export const getInternetIdentityURL = (): string => {
-  if (ENV_VARS.DFX_NETWORK === 'ic') {
+  if (ENV_VARS.DFX_NETWORK !== 'ic') {
     return 'https://identity.ic0.app';
   }
 
