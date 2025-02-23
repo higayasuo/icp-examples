@@ -31,7 +31,7 @@ export class StandardCrypto implements CryptoModule {
 
   async aesEncryptAsync(
     data: Uint8Array,
-    key: Uint8Array,
+    rawKey: Uint8Array,
   ): Promise<Uint8Array> {
     // Generate random IV and HMAC key
     const iv = this.getRandomBytes(16);
@@ -40,7 +40,7 @@ export class StandardCrypto implements CryptoModule {
     // Import AES-256-CBC key
     const aesKey = await crypto.subtle.importKey(
       'raw',
-      key,
+      rawKey,
       { name: 'AES-CBC', length: 256 },
       false,
       ['encrypt'],
@@ -85,7 +85,7 @@ export class StandardCrypto implements CryptoModule {
 
   async aesDecryptAsync(
     data: Uint8Array,
-    key: Uint8Array,
+    rawKey: Uint8Array,
   ): Promise<Uint8Array> {
     // Split the data
     const iv = data.slice(0, 16);
@@ -115,7 +115,7 @@ export class StandardCrypto implements CryptoModule {
     // Import AES key
     const aesKey = await crypto.subtle.importKey(
       'raw',
-      key,
+      rawKey,
       { name: 'AES-CBC', length: 256 },
       false,
       ['decrypt'],

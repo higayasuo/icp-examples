@@ -176,7 +176,7 @@ npm run dfx:start
 **重要な注意点**
 `Error: dfx is already running.`というエラーが出た場合は、すでに、dfx startを実行している可能性が高いです。一度、dfx stopでローカルreplicaを停止してから、再度、開発サーバを立ち上げてください。
 
-## Canisterのデプロイ
+## Canisterのデプロイ for local
 ローカルreplicaに、Canisterをデプロイするには、以下のコマンドを実行します：
 ```bash
 npm run dfx:deploy
@@ -187,6 +187,30 @@ npm run dfx:deploy
 
 **重要な注意点**
 - デプロイ前にdfx:startが実行されている必要があります
+- デプロイには数分かかる場合があります
+
+## Canisterのデプロイ for playground
+playgroundに、Canisterをデプロイするには、以下のコマンドを実行します：
+```bash
+npm run dfx:deploy:playgorund
+```
+このコマンドは下記のことをしています：
+1. 全てのCanister（internet-identity, ii-integration, expo-starter-frontend, expo-starter-backend）をビルドします
+2. ビルドしたCanisterをplaygroundにインストールします
+
+**重要な注意点**
+- デプロイには数分かかる場合があります
+
+## Canisterのデプロイ for ic
+icに、Canisterをデプロイするには、以下のコマンドを実行します：
+```bash
+npm run dfx:deploy:ic
+```
+このコマンドは下記のことをしています：
+1. 全てのCanister（internet-identity, ii-integration, expo-starter-frontend, expo-starter-backend）をビルドします
+2. ビルドしたCanisterをicにインストールします
+
+**重要な注意点**
 - デプロイには数分かかる場合があります
 
 ## local-ssl-proxyの起動

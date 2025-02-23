@@ -7,6 +7,8 @@
     "setup": "npm install && npm run ii:setup && npm run frontend:setup && npm run ii-integration:setup",
     "dfx:start": "dfx start --clean",
     "dfx:deploy": "dfx deps deploy && dfx deploy expo-starter-backend && dfx deploy ii-integration && dfx deploy expo-starter-frontend",
+    "dfx:deploy:playgorund": "dfx deps deploy && dfx deploy expo-starter-backend --playgorund && dfx deploy ii-integration --playgorund && dfx deploy expo-starter-frontend --playgorund",
+    "dfx:deploy:ic": "dfx deps deploy && dfx deploy expo-starter-backend --ic && dfx deploy ii-integration --ic && dfx deploy expo-starter-frontend --ic",
     "ssl:canisters": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 14943 --target 4943",
     "ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 24943 --target 4943",
     "ssl:web": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 18081 --target 8081",

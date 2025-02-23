@@ -1,7 +1,5 @@
 import * as ExpoCrypto from 'expo-crypto';
-import * as base64 from 'base64-js';
 import { CryptoModule } from './CryptoModule';
-import { toHex, fromHex } from './hex';
 import CryptoJS from 'crypto-js';
 import { compareUint8Arrays } from './uint8ArrayUtils';
 
@@ -57,14 +55,14 @@ export class NativeCrypto implements CryptoModule {
 
   async aesEncryptAsync(
     data: Uint8Array,
-    key: Uint8Array,
+    rawKey: Uint8Array,
   ): Promise<Uint8Array> {
     // Generate random IV and HMAC key
     const iv = this.getRandomBytes(16);
     const hmacKey = this.getRandomBytes(32);
 
     // Convert data and keys to WordArrays
-    const keyWords = uint8ArrayToWordArray(key);
+    const keyWords = uint8ArrayToWordArray(rawKey);
     const dataWords = uint8ArrayToWordArray(data);
     const ivWords = uint8ArrayToWordArray(iv);
     const hmacKeyWords = uint8ArrayToWordArray(hmacKey);
@@ -109,7 +107,7 @@ export class NativeCrypto implements CryptoModule {
 
   async aesDecryptAsync(
     data: Uint8Array,
-    key: Uint8Array,
+    rawKey: Uint8Array,
   ): Promise<Uint8Array> {
     try {
       // Split the data
@@ -119,7 +117,7 @@ export class NativeCrypto implements CryptoModule {
       const receivedHmac = data.slice(-32);
 
       // Convert to WordArrays
-      const keyWords = uint8ArrayToWordArray(key);
+      const keyWords = uint8ArrayToWordArray(rawKey);
       const ivWords = uint8ArrayToWordArray(iv);
       const hmacKeyWords = uint8ArrayToWordArray(hmacKey);
 

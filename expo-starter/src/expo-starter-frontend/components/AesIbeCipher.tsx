@@ -14,15 +14,12 @@ import { principalFromAgent } from '@/icp/principalFromAgent';
 import { ibeEncrypt } from '@/icp/ibeEncrypt';
 import { ibeDecrypt, createTransportSecretKey } from '@/icp/ibeDecrypt';
 
-interface IbeCipherProps {
+interface AesIbeCipherProps {
   backend: ActorSubclass<_SERVICE>;
 }
 
-/**
- * IBE (Identity-Based Encryption) cipher component
- * Provides UI for text encryption with input field and encryption button
- */
-export const IbeCipher = ({ backend }: IbeCipherProps) => {
+export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
+  const [aesRawKey, setAesRawKey] = useState<Uint8Array | undefined>();
   const [plaintext, setPlaintext] = useState('');
   const [publicKey, setPublicKey] = useState<Uint8Array | undefined>();
   const [ciphertext, setCiphertext] = useState<Uint8Array | undefined>();
@@ -40,6 +37,16 @@ export const IbeCipher = ({ backend }: IbeCipherProps) => {
     setDecryptedText('');
   }, [agent]);
 
+  useEffect(() => {
+    const processAesRawKey = async () => {
+      setStatus('Generating AES raw key...');
+      const rawKey = platformCrypto.getRandomBytes(32);
+      setAesRawKey(rawKey);
+      setStatus('AES raw key generated');
+    };
+    processAesRawKey();
+  }, []);
+
   const getPublicKey = async (): Promise<Uint8Array> => {
     if (publicKey) {
       return publicKey;
@@ -53,31 +60,24 @@ export const IbeCipher = ({ backend }: IbeCipherProps) => {
   };
 
   const handleEncrypt = async () => {
+    if (!aesRawKey) {
+      setError('AES raw key not generated');
+      return;
+    }
+
     setBusy(true);
     setError(undefined);
     const startTime = performance.now();
     try {
       setStatus('Encryption starting...');
-      console.log('IBE encryption starting...');
-
-      const t1 = performance.now();
-      const principal = await principalFromAgent(agent);
-      console.log(`Getting principal took: ${performance.now() - t1}ms`);
-
-      const publicKey = await getPublicKey();
-
-      const t3 = performance.now();
-      const seed = platformCrypto.getRandomBytes(32);
-      console.log(`Generating random bytes took: ${performance.now() - t3}ms`);
+      console.log('Encryption starting...');
 
       const t4 = performance.now();
-      const encryptedBytes = await ibeEncrypt({
-        data: new TextEncoder().encode(plaintext),
-        principal,
-        publicKey,
-        seed,
-      });
-      console.log(`IBE encryption took: ${performance.now() - t4}ms`);
+      const encryptedBytes = await platformCrypto.aesEncryptAsync(
+        new TextEncoder().encode(plaintext),
+        aesRawKey,
+      );
+      console.log(`Encryption took: ${performance.now() - t4}ms`);
 
       setCiphertext(encryptedBytes);
       setStatus('Encryption done');
@@ -96,49 +96,23 @@ export const IbeCipher = ({ backend }: IbeCipherProps) => {
     setError(undefined);
     const startTime = performance.now();
     try {
+      if (!aesRawKey) {
+        throw new Error('AES raw key not generated');
+      }
+
       if (!ciphertext) {
         throw new Error('No ciphertext available');
       }
 
       setStatus('Decryption starting...');
-      console.log('IBE decryption starting...');
-
-      const t1 = performance.now();
-      const principal = await principalFromAgent(agent);
-      console.log(`Getting principal took: ${performance.now() - t1}ms`);
-
-      const t2 = performance.now();
-      const tskSeed = platformCrypto.getRandomBytes(32);
-      console.log(`Generating TSK seed took: ${performance.now() - t2}ms`);
-
-      const t3 = performance.now();
-      const tsk = createTransportSecretKey(tskSeed);
-      const transportPublicKey = tsk.getPublicKey();
-      console.log(
-        `Creating TSK and getting public key took: ${performance.now() - t3}ms`,
-      );
-
-      const t4 = performance.now();
-      const encryptedKey = (await backend.asymmetric_encrypted_key(
-        transportPublicKey,
-      )) as Uint8Array;
-      console.log(
-        `Getting encrypted IBE decryption key took: ${
-          performance.now() - t4
-        }ms`,
-      );
-
-      const publicKey = await getPublicKey();
+      console.log('Decryption starting...');
 
       const t6 = performance.now();
-      const decryptedBytes = await ibeDecrypt({
+      const decryptedBytes = await platformCrypto.aesDecryptAsync(
         ciphertext,
-        principal,
-        encryptedKey,
-        publicKey,
-        tsk,
-      });
-      console.log(`IBE decryption took: ${performance.now() - t6}ms`);
+        aesRawKey,
+      );
+      console.log(`Decryption took: ${performance.now() - t6}ms`);
 
       setDecryptedText(new TextDecoder().decode(decryptedBytes));
       setStatus('Decryption done');
@@ -152,8 +126,8 @@ export const IbeCipher = ({ backend }: IbeCipherProps) => {
     }
   };
 
-  const canEncrypt = plaintext.trim().length > 0 && !busy;
-  const canDecrypt = ciphertext !== undefined && !busy;
+  const canEncrypt = plaintext.trim().length > 0 && !busy && !!aesRawKey;
+  const canDecrypt = ciphertext !== undefined && !busy && !!aesRawKey;
 
   return (
     <View style={[styles.container, { maxWidth: Math.min(800, width - 32) }]}>

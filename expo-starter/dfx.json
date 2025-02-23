@@ -24,6 +24,7 @@
         "ii-integration"
       ],
       "source": [
+        "src/expo-starter-frontend/icp-assets",
         "src/expo-starter-frontend/dist"
       ],
       "type": "assets",

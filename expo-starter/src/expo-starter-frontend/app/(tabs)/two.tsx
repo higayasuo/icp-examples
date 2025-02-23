@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { IbeCipher } from '@/components/IbeCipher';
+import { AesIbeCipher } from '@/components/AesIbeCipher';
 import { createBackend } from '@/icp/backend';
 
 export default function TabTwoScreen() {
@@ -13,7 +13,7 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-      <IbeCipher backend={backend} />
+      <AesIbeCipher backend={backend} />
     </View>
   );
 }

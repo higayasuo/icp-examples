@@ -13,7 +13,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta
           httpEquiv="Content-Security-Policy"
           content="default-src 'self';
-            script-src 'self' '/assets' 'unsafe-eval' 'unsafe-inline' http://192.168.0.*:* https://192.168.0.*:*;
+            script-src 'self' 'unsafe-eval' 'unsafe-inline';
             connect-src 'self' http://localhost:* http://*.localhost:* https://icp0.io https://*.icp0.io https://icp-api.io https://identity.ic0.app https://ic0.app https://*.ic0.app https://*.raw.ic0.app;
             img-src 'self' data:;
             style-src * 'unsafe-inline';
@@ -21,7 +21,6 @@ export default function Root({ children }: { children: React.ReactNode }) {
             font-src *;
             object-src 'none';
             base-uri 'self';
-            frame-ancestors 'none';
             form-action 'self';
             upgrade-insecure-requests;"
         />

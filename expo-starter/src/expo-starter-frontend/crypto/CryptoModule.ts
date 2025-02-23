@@ -19,16 +19,16 @@ export interface CryptoModule {
   /**
    * Encrypts data using AES-GCM
    * @param data - The data to encrypt as bytes
-   * @param key - The encryption key as bytes
+   * @param rawKey - The encryption key as bytes
    * @returns Promise resolving to encrypted bytes with IV prepended
    */
-  aesEncryptAsync(data: Uint8Array, key: Uint8Array): Promise<Uint8Array>;
+  aesEncryptAsync(data: Uint8Array, rawKey: Uint8Array): Promise<Uint8Array>;
 
   /**
    * Decrypts AES-GCM encrypted data
    * @param data - The encrypted data as bytes (including IV)
-   * @param key - The decryption key as bytes
+   * @param rawKey - The decryption key as bytes
    * @returns Promise resolving to decrypted bytes
    */
-  aesDecryptAsync(data: Uint8Array, key: Uint8Array): Promise<Uint8Array>;
+  aesDecryptAsync(data: Uint8Array, rawKey: Uint8Array): Promise<Uint8Array>;
 }
