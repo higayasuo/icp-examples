@@ -206,6 +206,59 @@ npm run dfx:deploy:playgorund
   - サイクル転送命令は無視されます
   - Wasmファイルをgzip圧縮することはできません
 
+## ICPメインネット(ic)へのデプロイ準備手順
+
+1. 開発用のidentityを作成して切り替えます
+```bash
+dfx identity new dev
+dfx identity use dev
+```
+
+2. アカウント情報を確認します
+```bash
+dfx ledger account-id
+dfx identity get-principal
+```
+
+3. デプロイに必要な準備をします
+- 表示されたAccount IDに少量のICPを送金します（5ICPくらいはあった方が無難）
+- 送金後、以下のコマンドでCanisterを作成します
+```bash
+dfx ledger --network ic create-canister $(dfx identity get-principal) --amount 4
+```
+
+4. Cyclesウォレットを設定します
+```bash
+dfx identity --ic deploy-wallet <作成されたCycles Wallet Canister ID>
+dfx identity --network ic set-wallet <作成されたCycles Wallet Canister ID>
+```
+
+**重要な注意点**
+- デプロイには以下が必要です：
+  - ウォレット作成用のICP
+  - Canisterデプロイ用のCycles
+
+## 開発者の秘密鍵のバックアップと復元
+
+### 秘密鍵のエクスポート
+```bash
+dfx identity export dev > dev.pem
+```
+このコマンドは、devアイデンティティの秘密鍵をPEMフォーマットでdev.pemファイルに保存します。
+
+### 秘密鍵のインポート
+```bash
+dfx identity import dev dev.pem
+```
+エクスポートしたPEMファイルから秘密鍵をインポートし、devアイデンティティとして登録します。
+
+**重要な注意点**
+- インポート時にパスフレーズの入力を求められます
+- パスフレーズは8文字以上である必要があります
+- パスフレーズは忘れないように安全に保管してください
+- PEMファイルは秘密鍵を含むため、セキュアに保管する必要があります
+- インポート完了後、不要なPEMファイルは安全に削除することを推奨します
+
 ## Canisterのデプロイ for ic
 icに、Canisterをデプロイするには、以下のコマンドを実行します：
 ```bash

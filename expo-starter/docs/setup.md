@@ -205,6 +205,59 @@ This command performs the following operations:
   - Cycle transfer instructions are ignored
   - Wasm files cannot be gzipped
 
+## Preparation Steps for ICP Mainnet (ic) Deployment
+
+1. Create and switch to a development identity
+```bash
+dfx identity new dev
+dfx identity use dev
+```
+
+2. Check account information
+```bash
+dfx ledger account-id
+dfx identity get-principal
+```
+
+3. Prepare for deployment
+- Transfer a small amount of ICP to the displayed Account ID (recommended to have around 5 ICP)
+- After the transfer, create a Canister with the following command
+```bash
+dfx ledger --network ic create-canister $(dfx identity get-principal) --amount 4
+```
+
+4. Configure the Cycles wallet
+```bash
+dfx identity --ic deploy-wallet <<created Cycles Wallet Canister ID>>
+dfx identity --network ic set-wallet <<created Cycles Wallet Canister ID>>
+```
+
+**Important Notes**
+- Deployment requires:
+  - ICP for wallet creation
+  - Cycles for Canister deployment
+
+## Backup and Restore Developer's Private Key
+
+### Export Private Key
+```bash
+dfx identity export dev > dev.pem
+```
+This command saves the private key of the dev identity in PEM format to the dev.pem file.
+
+### Import Private Key
+```bash
+dfx identity import dev dev.pem
+```
+This imports the private key from the exported PEM file and registers it as the dev identity.
+
+**Important Notes**
+- You will be prompted for a passphrase during import
+- The passphrase must be at least 8 characters long
+- Store your passphrase securely and don't forget it
+- The PEM file contains sensitive private key data and must be stored securely
+- It is recommended to safely delete the PEM file after successful import
+
 ## Deploying Canisters for IC
 To deploy Canisters to the IC (Internet Computer), execute the following command:
 ```bash
