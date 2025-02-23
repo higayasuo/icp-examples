@@ -175,7 +175,7 @@ To stop the local replica, use either of these methods:
 **Important Note**
 If you see the error `Error: dfx is already running.`, it likely means dfx start is already running. Stop the local replica with dfx stop first, then restart the development server.
 
-## Deploying Canisters
+## Deploying Canisters for local
 To deploy Canisters to the local replica, execute the following command:
 ```bash
 npm run dfx:deploy
@@ -187,6 +187,37 @@ This command performs the following:
 **Important Notes**
 - dfx:start must be running before deployment
 - Deployment may take several minutes to complete
+
+## Deploying Canisters for Playground
+To deploy Canisters to the playground, execute the following command:
+```bash
+npm run dfx:deploy:playground
+```
+This command performs the following operations:
+1. Builds all Canisters (internet-identity, ii-integration, expo-starter-frontend, expo-starter-backend)
+2. Installs the built Canisters to the playground
+
+**Important Notes**
+- Deployment may take several minutes
+- Deployed canisters expire after 20 minutes
+- Playground deployments have the following limitations:
+  - Maximum memory usage of 1GB
+  - Cycle transfer instructions are ignored
+  - Wasm files cannot be gzipped
+
+## Deploying Canisters for IC
+To deploy Canisters to the IC (Internet Computer), execute the following command:
+```bash
+npm run dfx:deploy:ic
+```
+This command performs the following operations:
+1. Builds all Canisters (internet-identity, ii-integration, expo-starter-frontend, expo-starter-backend)
+2. Installs the built Canisters to the IC mainnet
+
+**Important Notes**
+- Deployment may take several minutes
+- Mainnet deployment requires cycles for operation
+
 
 ## Starting local-ssl-proxy
 Here's how to start local-ssl-proxy
