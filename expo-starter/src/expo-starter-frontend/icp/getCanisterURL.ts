@@ -9,7 +9,7 @@ import { HOST_ADDRESS } from './constants';
  * @returns {string} - The URL to access the canister.
  */
 export const getCanisterURL = (canisterId: string): string => {
-  if (ENV_VARS.DFX_NETWORK !== 'ic') {
+  if (ENV_VARS.DFX_NETWORK !== 'local') {
     return `https://${canisterId}.ic0.app`;
   }
 
