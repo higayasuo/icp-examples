@@ -3,7 +3,7 @@ import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -65,34 +65,28 @@ function RootLayoutNav() {
     getTransportPublicKey,
   } = useAuth();
 
+  // Initialize AES key
   useEffect(() => {
-    const initAesKey = () => {
-      console.log('initAesKey');
-      const backend = createBackend(identity);
+    const initAesKey = async () => {
+      try {
+        const backend = createBackend(identity);
+        // Get public key from backend
+        const publicKey = (await backend.asymmetric_public_key()) as Uint8Array;
 
-      // Use then() chain for asynchronous operations
-      backend
-        .asymmetric_public_key()
-        .then((publicKey) => {
-          const principal = identity
-            ? identity.getPrincipal()
-            : Principal.anonymous();
+        // Get principal from identity
+        const principal = identity
+          ? identity.getPrincipal()
+          : Principal.anonymous();
 
-          return initializeAesKey({
-            publicKey: publicKey as Uint8Array,
-            principal,
-          });
-        })
-        .then((result) => {
-          console.log('AES key initialized:', result !== undefined);
-        })
-        .catch((error) => {
-          console.error('Failed to initialize AES key:', error);
-        });
+        // Initialize AES key
+        await initializeAesKey({ publicKey, principal });
+      } catch (err) {
+        console.error('Failed to initialize AES key:', err);
+      }
     };
 
     initAesKey();
-  }, [identity]);
+  }, [identity, initializeAesKey]);
 
   if (!isReady) {
     return (

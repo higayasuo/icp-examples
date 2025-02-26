@@ -10,13 +10,11 @@ interface AuthContextType {
   initializeAesKey: (params: {
     publicKey: Uint8Array;
     principal: Principal;
+    encryptedAesKey?: Uint8Array;
+    encryptedKey?: Uint8Array;
   }) => Promise<Uint8Array | undefined>;
-  aesEncrypt: (params: {
-    plaintext: Uint8Array;
-  }) => Promise<Uint8Array | undefined>;
-  aesDecrypt: (params: {
-    ciphertext: Uint8Array;
-  }) => Promise<Uint8Array | undefined>;
+  aesEncrypt: (params: { plaintext: Uint8Array }) => Promise<Uint8Array>;
+  aesDecrypt: (params: { ciphertext: Uint8Array }) => Promise<Uint8Array>;
   hasAesKey: () => boolean;
   getTransportPublicKey: () => Uint8Array;
 }

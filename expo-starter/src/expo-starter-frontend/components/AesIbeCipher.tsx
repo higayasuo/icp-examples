@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { ActorSubclass, Actor } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
-import { principalFromAgent } from '@/icp/principalFromAgent';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 interface AesIbeCipherProps {
@@ -17,16 +16,10 @@ interface AesIbeCipherProps {
 }
 
 export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
-  const { initializeAesKey, aesEncrypt, aesDecrypt, hasAesKey } =
-    useAuthContext();
-  const [encryptedAesKey, setEncryptedAesKey] = useState<
-    Uint8Array | undefined
-  >();
+  const { aesEncrypt, aesDecrypt, hasAesKey } = useAuthContext();
+
   const [plaintext, setPlaintext] = useState('');
-  const [publicKey, setPublicKey] = useState<Uint8Array | undefined>();
-  const [ciphertext, setCiphertext] = useState<Uint8Array | undefined>();
   const [decryptedText, setDecryptedText] = useState('');
-  const [keyGenerated, setKeyGenerated] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string>('Status will appear here');
@@ -34,62 +27,8 @@ export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
 
   const agent = Actor.agentOf(backend);
 
-  const getPublicKey = async (): Promise<Uint8Array> => {
-    if (publicKey) {
-      return publicKey;
-    }
-
-    const t = performance.now();
-    const pk = (await backend.asymmetric_public_key()) as Uint8Array;
-    setPublicKey(pk);
-    console.log(`Getting public key took: ${performance.now() - t}ms`);
-    return pk;
-  };
-
-  useEffect(() => {
-    const generateAndEncryptAesKey = async () => {
-      try {
-        setStatus('Preparing to initialize AES key...');
-        setBusy(true);
-
-        // Get the public key from the backend
-        const pk = await getPublicKey();
-
-        // Get the principal from the agent
-        const principal = await principalFromAgent(agent);
-
-        // Initialize AES key with IBE encryption
-        const encryptedKey = await initializeAesKey({
-          publicKey: pk,
-          principal,
-        });
-
-        if (encryptedKey === undefined) {
-          throw new Error('Failed to initialize AES key');
-        }
-
-        setStatus('AES key initialized successfully');
-
-        setKeyGenerated(true);
-        setEncryptedAesKey(encryptedKey);
-      } catch (error) {
-        setError(`Error occurred during AES key initialization: ${error}`);
-      } finally {
-        setBusy(false);
-      }
-    };
-
-    if (!hasAesKey()) {
-      generateAndEncryptAesKey();
-    } else {
-      setStatus('Using existing AES key');
-      setKeyGenerated(true);
-    }
-  }, [initializeAesKey, agent, hasAesKey]);
-
   useEffect(() => {
     setPlaintext('');
-    setCiphertext(undefined);
     setDecryptedText('');
   }, [agent]);
 
@@ -106,20 +45,13 @@ export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
     const plaintextBytes = new TextEncoder().encode(plaintext);
 
     aesEncrypt({ plaintext: plaintextBytes })
-      .then((result) => {
-        if (result === undefined) {
-          throw new Error('Encryption failed');
-        }
-        setCiphertext(result);
+      .then((ciphertext) => {
         setStatus('Encryption completed, starting decryption...');
 
         // Proceed with decryption
-        return aesDecrypt({ ciphertext: result });
+        return aesDecrypt({ ciphertext });
       })
       .then((result) => {
-        if (result === undefined) {
-          throw new Error('Decryption failed');
-        }
         setDecryptedText(new TextDecoder().decode(result));
         setStatus('Encryption and decryption completed');
       })
@@ -148,39 +80,40 @@ export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
               setPlaintext(text);
               setStatus('Plain text changed');
               setDecryptedText('');
-              setCiphertext(undefined);
             }}
             placeholder="Enter text to encrypt"
           />
         </View>
-        <Pressable
-          style={[
-            styles.encryptButton,
-            canEncrypt ? styles.activeButton : styles.disabledButton,
-          ]}
-          accessibilityRole="button"
-          disabled={!canEncrypt}
-          accessibilityState={{ busy, disabled: !canEncrypt }}
-          onPress={handleEncryptAndDecrypt}
-        >
-          <Text
-            style={
-              canEncrypt ? styles.activeButtonText : styles.disabledButtonText
-            }
+        <View style={styles.buttonRow}>
+          <Pressable
+            style={[
+              styles.encryptButton,
+              canEncrypt ? styles.activeButton : styles.disabledButton,
+            ]}
+            accessibilityRole="button"
+            disabled={!canEncrypt}
+            accessibilityState={{ busy, disabled: !canEncrypt }}
+            onPress={handleEncryptAndDecrypt}
           >
-            Encrypt & Decrypt
-          </Text>
-        </Pressable>
-      </View>
-      <View style={styles.resultContainer}>
-        <Text style={styles.label}>Decrypted Text:</Text>
-        <View style={styles.decryptedContainer}>
-          <TextInput
-            style={[styles.input, styles.decryptedInput]}
-            value={decryptedText}
-            editable={false}
-            placeholder="Decrypted text will appear here"
-          />
+            <Text
+              style={
+                canEncrypt ? styles.activeButtonText : styles.disabledButtonText
+              }
+            >
+              Encrypt & Decrypt
+            </Text>
+          </Pressable>
+        </View>
+        <View style={styles.resultContainer}>
+          <Text style={styles.label}>Decrypted Text:</Text>
+          <View style={styles.decryptedContainer}>
+            <TextInput
+              style={[styles.input, styles.decryptedInput]}
+              value={decryptedText}
+              editable={false}
+              placeholder="Decrypted text will appear here"
+            />
+          </View>
         </View>
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -191,8 +124,15 @@ export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
     alignSelf: 'center',
+    width: '100%',
   },
   statusContainer: {
     marginBottom: 8,
@@ -217,8 +157,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    padding: 8,
     fontSize: 16,
     height: 44,
   },
@@ -229,10 +168,16 @@ const styles = StyleSheet.create({
   decryptedInput: {
     textAlignVertical: 'center',
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
   encryptButton: {
-    width: 180,
+    flex: 1,
+    maxWidth: 180,
     height: 44,
-    alignSelf: 'flex-end',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
