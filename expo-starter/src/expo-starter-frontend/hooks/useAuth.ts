@@ -16,6 +16,8 @@ import { router, usePathname, Href } from 'expo-router';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AuthClient } from '@dfinity/auth-client';
 import { Platform } from 'react-native';
+import { Principal } from '@dfinity/principal';
+import { ICPWorker, MessageType } from '@/icp/ICPWorker';
 
 const navigate = (path: string) => {
   try {
@@ -52,6 +54,7 @@ export function useAuth() {
   const [authClient, setAuthClient] = useState<AuthClient | undefined>(
     undefined,
   );
+  const [worker] = useState(() => new ICPWorker());
 
   // Initialize auth state
   useEffect(() => {
@@ -196,10 +199,120 @@ export function useAuth() {
     }
   };
 
+  /**
+   * Initialize AES key and encrypt it with IBE
+   * @param params - Parameters for AES key initialization
+   * @param params.publicKey - Public key for IBE encryption
+   * @param params.principal - Principal for IBE encryption
+   * @returns Promise with the encrypted AES key or undefined on failure
+   */
+  const initializeAesKey = ({
+    publicKey,
+    principal,
+  }: {
+    publicKey: Uint8Array;
+    principal: Principal;
+  }): Promise<Uint8Array | undefined> => {
+    return worker
+      .postMessage({
+        type: MessageType.INITIALIZE_AES_KEY,
+        data: { publicKey, principal },
+      })
+      .then((response) => {
+        if (response.error) {
+          console.error('Error initializing AES key:', response.error);
+          return undefined;
+        }
+        // Convert null to undefined if needed
+        return response.data ?? undefined;
+      })
+      .catch((error) => {
+        console.error('Failed to initialize AES key:', error);
+        return undefined;
+      });
+  };
+
+  /**
+   * Encrypt data using AES with the stored key
+   * @param params - Parameters for AES encryption
+   * @param params.plaintext - Data to encrypt
+   * @returns Promise with the encrypted data or undefined on failure
+   */
+  const aesEncrypt = ({
+    plaintext,
+  }: {
+    plaintext: Uint8Array;
+  }): Promise<Uint8Array | undefined> => {
+    return worker
+      .postMessage({
+        type: MessageType.AES_ENCRYPT,
+        data: { plaintext },
+      })
+      .then((response) => {
+        if (response.error) {
+          console.error('Error encrypting with stored key:', response.error);
+          return undefined;
+        }
+        // Convert null to undefined if needed
+        return response.data ?? undefined;
+      })
+      .catch((error) => {
+        console.error('Failed to encrypt with stored key:', error);
+        return undefined;
+      });
+  };
+
+  /**
+   * Decrypt data using AES with the stored key
+   * @param params - Parameters for AES decryption
+   * @param params.ciphertext - Data to decrypt
+   * @returns Promise with the decrypted data or undefined on failure
+   */
+  const aesDecrypt = ({
+    ciphertext,
+  }: {
+    ciphertext: Uint8Array;
+  }): Promise<Uint8Array | undefined> => {
+    return worker
+      .postMessage({
+        type: MessageType.AES_DECRYPT,
+        data: { ciphertext },
+      })
+      .then((response) => {
+        if (response.error) {
+          console.error('Error decrypting with stored key:', response.error);
+          return undefined;
+        }
+        // Convert null to undefined if needed
+        return response.data ?? undefined;
+      })
+      .catch((error) => {
+        console.error('Failed to decrypt with stored key:', error);
+        return undefined;
+      });
+  };
+
+  /**
+   * Check if the worker has an AES key
+   * @returns boolean indicating if a key is available
+   */
+  const hasAesKey = (): boolean => {
+    return worker.hasAesKey();
+  };
+
+  const getTransportPublicKey = (): Uint8Array => {
+    return worker.getTransportPublicKey();
+  };
+
   return {
     identity,
     isReady,
     login,
     logout,
+    initializeAesKey,
+    aesEncrypt,
+    aesDecrypt,
+    hasAesKey,
+    getTransportPublicKey,
   };
 }

@@ -13,6 +13,17 @@ export interface DecryptAndHashParams extends DecryptParams {
 }
 
 /**
+ * Create transport secret key from seed
+ * @param {Uint8Array} tskSeed - The 32-byte random seed for transport secret key.
+ * @returns {TransportSecretKeyWrapper} The transport secret key wrapper instance.
+ */
+export const createTransportSecretKey = (
+  tskSeed: Uint8Array,
+): TransportSecretKeyWrapper => {
+  return new TransportSecretKeyWrapper(tskSeed);
+};
+
+/**
  * Wrapper class for vetkd.TransportSecretKey
  * Encapsulates all vetkd dependencies
  */

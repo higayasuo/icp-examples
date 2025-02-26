@@ -1,15 +1,17 @@
 import { platformCrypto } from '@/crypto/platformCrypto';
 import { ibeEncrypt } from './ibeEncrypt';
 import { Principal } from '@dfinity/principal';
-import { ActorSubclass } from '@dfinity/agent';
 import { _SERVICE } from './expo-starter-backend.did';
+import {
+  TransportSecretKeyWrapper,
+  createTransportSecretKey,
+} from './TransportSecretKeyWrapper';
 
 /**
  * Message type literals
  */
 export const MessageType = {
-  GENERATE_AES_KEY: 'generate_aes_key',
-  IBE_ENCRYPT: 'ibe_encrypt',
+  INITIALIZE_AES_KEY: 'initialize_aes_key',
   AES_ENCRYPT: 'aes_encrypt',
   AES_DECRYPT: 'aes_decrypt',
   OTHER: 'other',
@@ -21,21 +23,15 @@ export type MessageType = (typeof MessageType)[keyof typeof MessageType];
  * Message data type mapping
  */
 export type MessageDataMap = {
-  [MessageType.GENERATE_AES_KEY]: {
-    keyLength: number;
-  };
-  [MessageType.IBE_ENCRYPT]: {
-    data: Uint8Array;
-    principal: Principal;
+  [MessageType.INITIALIZE_AES_KEY]: {
     publicKey: Uint8Array;
+    principal: Principal;
   };
   [MessageType.AES_ENCRYPT]: {
     plaintext: Uint8Array;
-    key: Uint8Array;
   };
   [MessageType.AES_DECRYPT]: {
     ciphertext: Uint8Array;
-    key: Uint8Array;
   };
   [MessageType.OTHER]: any;
 };
@@ -54,8 +50,7 @@ export type ICPWorkerMessage = {
  * Response data type mapping
  */
 export type ResponseDataMap = {
-  [MessageType.GENERATE_AES_KEY]: Uint8Array;
-  [MessageType.IBE_ENCRYPT]: Uint8Array;
+  [MessageType.INITIALIZE_AES_KEY]: Uint8Array | undefined;
   [MessageType.AES_ENCRYPT]: Uint8Array;
   [MessageType.AES_DECRYPT]: Uint8Array;
   [MessageType.OTHER]: any;
@@ -82,6 +77,8 @@ type MessageHandler<T extends MessageType> = (
  */
 export class ICPWorker {
   private messageHandlers: Map<MessageType, MessageHandler<any>>;
+  private aesRawKey: Uint8Array | undefined = undefined;
+  private tsk: TransportSecretKeyWrapper;
 
   /**
    * Create a new ICPWorker instance
@@ -89,6 +86,8 @@ export class ICPWorker {
   constructor() {
     this.messageHandlers = new Map();
     this.initializeHandlers();
+    const tskSeed = platformCrypto.getRandomBytes(32);
+    this.tsk = createTransportSecretKey(tskSeed);
   }
 
   /**
@@ -96,48 +95,49 @@ export class ICPWorker {
    */
   private initializeHandlers(): void {
     this.messageHandlers.set(
-      MessageType.GENERATE_AES_KEY,
+      MessageType.INITIALIZE_AES_KEY,
       async ({
-        keyLength,
-      }: MessageDataMap[typeof MessageType.GENERATE_AES_KEY]) => {
-        // Generate AES key
-        return platformCrypto.getRandomBytes(keyLength);
-      },
-    );
-
-    this.messageHandlers.set(
-      MessageType.IBE_ENCRYPT,
-      async ({
-        data,
-        principal,
         publicKey,
-      }: MessageDataMap[typeof MessageType.IBE_ENCRYPT]) => {
+        principal,
+      }: MessageDataMap[typeof MessageType.INITIALIZE_AES_KEY]) => {
+        // Generate AES key with fixed length of 32 bytes
+        const key = platformCrypto.getRandomBytes(32);
+        this.aesRawKey = key;
+
+        if (principal.isAnonymous()) {
+          return undefined;
+        }
+
         // Generate random seed for IBE encryption
         const seed = platformCrypto.getRandomBytes(32);
 
-        // Perform IBE encryption
+        // Encrypt the AES key using IBE
         const encryptedBytes = await ibeEncrypt({
-          data,
+          data: key,
           principal,
           publicKey,
           seed,
         });
 
+        // Return the encrypted AES key
         return encryptedBytes;
       },
     );
 
     this.messageHandlers.set(
       MessageType.AES_ENCRYPT,
-      async ({
-        plaintext,
-        key,
-      }: MessageDataMap[typeof MessageType.AES_ENCRYPT]) => {
-        const encryptedBytes = await platformCrypto.aesEncryptAsync(
-          plaintext,
-          key,
-        );
-        return encryptedBytes;
+      async ({ plaintext }: MessageDataMap[typeof MessageType.AES_ENCRYPT]) => {
+        // Use the internally stored key as a priority
+        if (this.aesRawKey) {
+          const encryptedBytes = await platformCrypto.aesEncryptAsync(
+            plaintext,
+            this.aesRawKey,
+          );
+          return encryptedBytes;
+        }
+
+        // Error if no internal key is available
+        throw new Error('No AES key available. Generate a key first.');
       },
     );
 
@@ -145,15 +145,36 @@ export class ICPWorker {
       MessageType.AES_DECRYPT,
       async ({
         ciphertext,
-        key,
       }: MessageDataMap[typeof MessageType.AES_DECRYPT]) => {
-        const decryptedBytes = await platformCrypto.aesDecryptAsync(
-          ciphertext,
-          key,
-        );
-        return decryptedBytes;
+        // Use the internally stored key as a priority
+        if (this.aesRawKey) {
+          const decryptedBytes = await platformCrypto.aesDecryptAsync(
+            ciphertext,
+            this.aesRawKey,
+          );
+          return decryptedBytes;
+        }
+
+        // Error if no internal key is available
+        throw new Error('No AES key available. Generate a key first.');
       },
     );
+  }
+
+  /**
+   * Check if an AES key is available
+   * @returns boolean indicating if a key is available
+   */
+  public hasAesKey(): boolean {
+    return this.aesRawKey !== undefined;
+  }
+
+  /**
+   * Get the public key from the transport secret key
+   * @returns {Uint8Array} The public key for transport secret key
+   */
+  public getTransportPublicKey(): Uint8Array {
+    return this.tsk.getPublicKey();
   }
 
   /**

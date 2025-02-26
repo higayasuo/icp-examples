@@ -1,11 +1,24 @@
 import React, { createContext, useContext } from 'react';
 import { DelegationIdentity } from '@dfinity/identity';
+import { Principal } from '@dfinity/principal';
 
 interface AuthContextType {
   identity: DelegationIdentity | undefined;
   isReady: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  initializeAesKey: (params: {
+    publicKey: Uint8Array;
+    principal: Principal;
+  }) => Promise<Uint8Array | undefined>;
+  aesEncrypt: (params: {
+    plaintext: Uint8Array;
+  }) => Promise<Uint8Array | undefined>;
+  aesDecrypt: (params: {
+    ciphertext: Uint8Array;
+  }) => Promise<Uint8Array | undefined>;
+  hasAesKey: () => boolean;
+  getTransportPublicKey: () => Uint8Array;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

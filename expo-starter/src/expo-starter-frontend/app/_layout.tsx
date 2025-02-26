@@ -9,6 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 
+import { createBackend } from '@/icp/backend';
+import { Principal } from '@dfinity/principal';
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -50,9 +53,48 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const auth = useAuth();
+  const {
+    isReady,
+    identity,
+    login,
+    logout,
+    initializeAesKey,
+    aesEncrypt,
+    aesDecrypt,
+    hasAesKey,
+    getTransportPublicKey,
+  } = useAuth();
 
-  if (!auth.isReady) {
+  useEffect(() => {
+    const initAesKey = () => {
+      console.log('initAesKey');
+      const backend = createBackend(identity);
+
+      // Use then() chain for asynchronous operations
+      backend
+        .asymmetric_public_key()
+        .then((publicKey) => {
+          const principal = identity
+            ? identity.getPrincipal()
+            : Principal.anonymous();
+
+          return initializeAesKey({
+            publicKey: publicKey as Uint8Array,
+            principal,
+          });
+        })
+        .then((result) => {
+          console.log('AES key initialized:', result !== undefined);
+        })
+        .catch((error) => {
+          console.error('Failed to initialize AES key:', error);
+        });
+    };
+
+    initAesKey();
+  }, [identity]);
+
+  if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -61,7 +103,19 @@ function RootLayoutNav() {
   }
 
   return (
-    <AuthProvider value={auth}>
+    <AuthProvider
+      value={{
+        identity,
+        isReady,
+        login,
+        logout,
+        initializeAesKey,
+        aesEncrypt,
+        aesDecrypt,
+        hasAesKey,
+        getTransportPublicKey,
+      }}
+    >
       <ThemeProvider
         value={{
           dark: false,
