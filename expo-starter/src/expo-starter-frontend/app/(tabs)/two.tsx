@@ -1,11 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { AesIbeCipher } from '@/components/AesIbeCipher';
-import { createBackend } from '@/icp/backend';
 
 export default function TabTwoScreen() {
-  const { identity, isReady } = useAuthContext();
-  const backend = createBackend(identity);
+  const { isReady } = useAuthContext();
 
   if (!isReady) {
     return null;
@@ -13,7 +11,13 @@ export default function TabTwoScreen() {
 
   return (
     <View style={styles.container}>
-      <AesIbeCipher backend={backend} />
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerText}>Encryption Demo</Text>
+        <Text style={styles.subHeaderText}>
+          You can try encrypting and decrypting text using AES encryption
+        </Text>
+      </View>
+      <AesIbeCipher />
     </View>
   );
 }
@@ -24,5 +28,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     paddingTop: 20,
+  },
+  headerContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  headerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subHeaderText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });

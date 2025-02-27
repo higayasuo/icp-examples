@@ -25,6 +25,11 @@ export function createActor<T>({
   interfaceFactory,
   identity = new AnonymousIdentity(),
 }: CreateActorParams): ActorSubclass<T> {
+  console.log(
+    `createActor canisterId: ${canisterId} identity: ${identity
+      .getPrincipal()
+      .toText()}`,
+  );
   const httpAgentOptions = {
     host: getCanisterURL(canisterId),
     identity,
@@ -46,6 +51,7 @@ export function createActor<T>({
     agent.fetchRootKey().catch((err) => {
       console.warn('Your local replica is not running');
       console.error(err);
+      throw err;
     });
   }
 

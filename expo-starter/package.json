@@ -6,9 +6,9 @@
   "scripts": {
     "setup": "npm install && npm run ii:setup && npm run frontend:setup && npm run ii-integration:setup",
     "dfx:start": "dfx start --clean",
-    "dfx:deploy": "dfx deps deploy && dfx deploy expo-starter-backend && dfx deploy ii-integration && dfx deploy expo-starter-frontend",
-    "dfx:deploy:playground": "dfx deps deploy && dfx deploy expo-starter-backend --playground && dfx deploy ii-integration --playground && dfx deploy expo-starter-frontend --playground",
-    "dfx:deploy:ic": "dfx deps deploy && dfx deploy expo-starter-backend --ic && dfx deploy ii-integration --ic && dfx deploy expo-starter-frontend --ic",
+    "dfx:deploy": "dfx deps deploy && dfx deploy expo-starter-backend --yes && dfx deploy ii-integration --yes && dfx deploy expo-starter-frontend --yes",
+    "dfx:deploy:playground": "dfx deps deploy && dfx deploy expo-starter-backend --playground --yes && dfx deploy ii-integration --playground --yes && dfx deploy expo-starter-frontend --playground --yes",
+    "dfx:deploy:ic": "dfx deps deploy && dfx deploy expo-starter-backend --ic --yes && dfx deploy ii-integration --ic --yes && dfx deploy expo-starter-frontend --ic --yes",
     "ssl:canisters": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 14943 --target 4943",
     "ssl:ii": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 24943 --target 4943",
     "ssl:web": "local-ssl-proxy --key ./.mkcert/192.168.0.210-key.pem --cert ./.mkcert/192.168.0.210.pem --source 18081 --target 8081",

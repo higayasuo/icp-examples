@@ -20,5 +20,6 @@ lazy_static = "1.4"
 hex = "0.4.3"
 #[target.'cfg(all(target_arch = "wasm32", target_vendor = "unknown", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", features = ["custom"] }
+ic-stable-structures = "0.6.7"
 
 [dev-dependencies]

@@ -1,7 +1,8 @@
 export const idlFactory = ({ IDL }) => {
   const AsymmetricKeysReply = IDL.Record({
-    'encrypted_key' : IDL.Vec(IDL.Nat8),
+    'encrypted_key' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'public_key' : IDL.Vec(IDL.Nat8),
+    'encrypted_aes_key' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const VetKDCurve = IDL.Variant({ 'bls12_381_g2' : IDL.Null });
   const VetKDKeyId = IDL.Record({ 'name' : IDL.Text, 'curve' : VetKDCurve });
@@ -21,17 +22,12 @@ export const idlFactory = ({ IDL }) => {
   });
   const VetKDPublicKeyReply = IDL.Record({ 'public_key' : IDL.Vec(IDL.Nat8) });
   return IDL.Service({
-    'asymmetric_encrypted_key' : IDL.Func(
-        [IDL.Vec(IDL.Nat8)],
-        [IDL.Vec(IDL.Nat8)],
-        [],
-      ),
     'asymmetric_keys' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [AsymmetricKeysReply],
         [],
       ),
-    'asymmetric_public_key' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
+    'asymmetric_save_encrypted_aes_key' : IDL.Func([IDL.Vec(IDL.Nat8)], [], []),
     'vetkd_derive_encrypted_key' : IDL.Func(
         [VetKDEncryptedKeyRequest],
         [VetKDEncryptedKeyReply],

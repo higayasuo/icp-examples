@@ -5,120 +5,126 @@ import {
   TextInput,
   StyleSheet,
   useWindowDimensions,
+  ActivityIndicator,
   Pressable,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Platform,
 } from 'react-native';
-import { ActorSubclass, Actor } from '@dfinity/agent';
-import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import { useAuthContext } from '@/contexts/AuthContext';
 
-interface AesIbeCipherProps {
-  backend: ActorSubclass<_SERVICE>;
-}
+export const AesIbeCipher = () => {
+  const { aesEncrypt, aesDecrypt, hasAesKey, identity } = useAuthContext();
 
-export const AesIbeCipher = ({ backend }: AesIbeCipherProps) => {
-  const { aesEncrypt, aesDecrypt, hasAesKey } = useAuthContext();
-
-  const [plaintext, setPlaintext] = useState('');
-  const [decryptedText, setDecryptedText] = useState('');
+  const [inputText, setInputText] = useState('');
+  const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string>('Status will appear here');
   const { width } = useWindowDimensions();
 
-  const agent = Actor.agentOf(backend);
-
   useEffect(() => {
-    setPlaintext('');
-    setDecryptedText('');
-  }, [agent]);
+    setInputText('');
+    setResult('');
+  }, [identity]);
 
-  const handleEncryptAndDecrypt = () => {
-    if (!hasAesKey()) {
+  const handleEncryptAndDecrypt = async () => {
+    // Dismiss keyboard when button is pressed (only on native)
+    if (Platform.OS !== 'web') {
+      Keyboard.dismiss();
+    }
+
+    if (!hasAesKey) {
       setError('AES key not generated');
       return;
     }
 
     setBusy(true);
     setError(undefined);
-    setStatus('Encryption in progress...');
 
-    const plaintextBytes = new TextEncoder().encode(plaintext);
-
-    aesEncrypt({ plaintext: plaintextBytes })
-      .then((ciphertext) => {
-        setStatus('Encryption completed, starting decryption...');
-
-        // Proceed with decryption
-        return aesDecrypt({ ciphertext });
-      })
-      .then((result) => {
-        setDecryptedText(new TextDecoder().decode(result));
-        setStatus('Encryption and decryption completed');
-      })
-      .catch((error) => {
-        setError(`Error occurred: ${error.message}`);
-      })
-      .finally(() => {
-        setBusy(false);
-      });
+    const plaintextBytes = new TextEncoder().encode(inputText);
+    const ciphertext = await aesEncrypt({ plaintext: plaintextBytes });
+    const decrypted = await aesDecrypt({ ciphertext });
+    setResult(new TextDecoder().decode(decrypted));
   };
 
-  const canEncrypt = plaintext.trim().length > 0 && !busy && hasAesKey();
-
-  return (
-    <View style={[styles.container, { maxWidth: Math.min(800, width - 32) }]}>
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>{status}</Text>
+  // Show loading indicator when AES key is not ready
+  if (!hasAesKey) {
+    return (
+      <View style={[styles.container, { maxWidth: Math.min(800, width - 32) }]}>
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusText}>{status}</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0066cc" />
+          <Text style={styles.loadingText}>Preparing AES Key</Text>
+          <Text style={styles.loadingSubText}>
+            Initial encryption process may take some time
+          </Text>
+        </View>
       </View>
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Plain Text:</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={plaintext}
-            onChangeText={(text) => {
-              setPlaintext(text);
-              setStatus('Plain text changed');
-              setDecryptedText('');
-            }}
-            placeholder="Enter text to encrypt"
-          />
-        </View>
-        <View style={styles.buttonRow}>
-          <Pressable
+    );
+  }
+
+  const isButtonDisabled = !inputText.trim() || busy;
+
+  // Create the main content
+  const content = (
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Input Text:</Text>
+        <TextInput
+          style={styles.input}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Enter text to encrypt"
+          multiline
+          blurOnSubmit={true}
+        />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            isButtonDisabled ? styles.buttonDisabled : styles.buttonEnabled,
+            pressed && !isButtonDisabled && styles.buttonPressed,
+          ]}
+          onPress={handleEncryptAndDecrypt}
+          disabled={isButtonDisabled}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isButtonDisabled }}
+        >
+          <Text
             style={[
-              styles.encryptButton,
-              canEncrypt ? styles.activeButton : styles.disabledButton,
+              styles.buttonText,
+              isButtonDisabled
+                ? styles.buttonTextDisabled
+                : styles.buttonTextEnabled,
             ]}
-            accessibilityRole="button"
-            disabled={!canEncrypt}
-            accessibilityState={{ busy, disabled: !canEncrypt }}
-            onPress={handleEncryptAndDecrypt}
           >
-            <Text
-              style={
-                canEncrypt ? styles.activeButtonText : styles.disabledButtonText
-              }
-            >
-              Encrypt & Decrypt
-            </Text>
-          </Pressable>
-        </View>
-        <View style={styles.resultContainer}>
-          <Text style={styles.label}>Decrypted Text:</Text>
-          <View style={styles.decryptedContainer}>
-            <TextInput
-              style={[styles.input, styles.decryptedInput]}
-              value={decryptedText}
-              editable={false}
-              placeholder="Decrypted text will appear here"
-            />
-          </View>
-        </View>
+            Encrypt & Decrypt
+          </Text>
+        </Pressable>
+      </View>
+      <View style={styles.resultContainer}>
+        <Text style={styles.label}>Result:</Text>
+        <Text style={styles.resultText}>{result}</Text>
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
+
+  // Only use TouchableWithoutFeedback on native platforms
+  if (Platform.OS !== 'web') {
+    return (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        {content}
+      </TouchableWithoutFeedback>
+    );
+  }
+
+  // Return content directly on web
+  return content;
 };
 
 const styles = StyleSheet.create({
@@ -145,9 +151,28 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  formGroup: {
-    marginBottom: 8,
-    width: '100%',
+  loadingContainer: {
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  loadingSubText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  loadingHint: {
+    marginTop: 16,
+    fontSize: 13,
+    color: '#0066cc',
+    textAlign: 'center',
   },
   inputContainer: {
     width: '100%',
@@ -161,41 +186,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: 44,
   },
-  decryptedContainer: {
-    width: '100%',
-    marginBottom: 8,
-  },
-  decryptedInput: {
-    textAlignVertical: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
+  buttonContainer: {
     marginBottom: 16,
   },
-  encryptButton: {
-    flex: 1,
-    maxWidth: 180,
+  button: {
     height: 44,
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
-  activeButton: {
-    backgroundColor: '#0066cc', // 青系の色
+  buttonEnabled: {
+    backgroundColor: '#0066cc',
+    borderColor: '#0055aa',
   },
-  disabledButton: {
-    backgroundColor: '#cccccc', // グレー
+  buttonDisabled: {
+    backgroundColor: '#cccccc',
+    borderColor: '#bbbbbb',
   },
-  activeButtonText: {
-    color: '#ffffff',
+  buttonPressed: {
+    backgroundColor: '#0055aa',
+  },
+  buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
-  disabledButtonText: {
-    color: '#666666',
-    fontSize: 16,
+  buttonTextEnabled: {
+    color: '#ffffff',
+  },
+  buttonTextDisabled: {
+    color: '#888888',
   },
   resultContainer: {
     marginTop: 8,
@@ -205,6 +225,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
+  },
+  resultText: {
+    fontSize: 16,
+    color: '#666',
   },
   errorText: {
     color: 'red',

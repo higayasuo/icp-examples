@@ -5,18 +5,25 @@ import { Principal } from '@dfinity/principal';
 interface AuthContextType {
   identity: DelegationIdentity | undefined;
   isReady: boolean;
+  isAuthenticated: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  initializeAesKey: (params: {
-    publicKey: Uint8Array;
-    principal: Principal;
-    encryptedAesKey?: Uint8Array;
-    encryptedKey?: Uint8Array;
-  }) => Promise<Uint8Array | undefined>;
   aesEncrypt: (params: { plaintext: Uint8Array }) => Promise<Uint8Array>;
   aesDecrypt: (params: { ciphertext: Uint8Array }) => Promise<Uint8Array>;
-  hasAesKey: () => boolean;
+  hasAesKey: boolean;
+  clearAesRawKey: () => void;
   getTransportPublicKey: () => Uint8Array;
+  decryptExistingAesKey: (
+    encryptedAesKey: Uint8Array,
+    encryptedKey: Uint8Array,
+    publicKey: Uint8Array,
+    principal: Principal,
+  ) => Promise<void>;
+  generateAesKey: () => Promise<void>;
+  generateAndEncryptAesKey: (
+    publicKey: Uint8Array,
+    principal: Principal,
+  ) => Promise<Uint8Array>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

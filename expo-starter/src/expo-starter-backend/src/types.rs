@@ -44,5 +44,6 @@ pub struct VetKDEncryptedKeyReply {
 #[derive(CandidType, Serialize)]
 pub struct AsymmetricKeysReply {
     pub public_key: Vec<u8>,
-    pub encrypted_key: Vec<u8>,
+    pub encrypted_key: Option<Vec<u8>>,
+    pub encrypted_aes_key: Option<Vec<u8>>,
 }

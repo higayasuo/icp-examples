@@ -3,8 +3,9 @@ import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
 export interface AsymmetricKeysReply {
-  'encrypted_key' : Uint8Array | number[],
+  'encrypted_key' : [] | [Uint8Array | number[]],
   'public_key' : Uint8Array | number[],
+  'encrypted_aes_key' : [] | [Uint8Array | number[]],
 }
 export type VetKDCurve = { 'bls12_381_g2' : null };
 export interface VetKDEncryptedKeyReply {
@@ -24,12 +25,11 @@ export interface VetKDPublicKeyRequest {
   'derivation_path' : Array<Uint8Array | number[]>,
 }
 export interface _SERVICE {
-  'asymmetric_encrypted_key' : ActorMethod<
-    [Uint8Array | number[]],
-    Uint8Array | number[]
-  >,
   'asymmetric_keys' : ActorMethod<[Uint8Array | number[]], AsymmetricKeysReply>,
-  'asymmetric_public_key' : ActorMethod<[], Uint8Array | number[]>,
+  'asymmetric_save_encrypted_aes_key' : ActorMethod<
+    [Uint8Array | number[]],
+    undefined
+  >,
   'vetkd_derive_encrypted_key' : ActorMethod<
     [VetKDEncryptedKeyRequest],
     VetKDEncryptedKeyReply

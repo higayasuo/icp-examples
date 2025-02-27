@@ -168,6 +168,7 @@ dependencies = [
  "ic-cdk",
  "ic-crypto-internal-bls12-381-type",
  "ic-crypto-internal-bls12-381-vetkd",
+ "ic-stable-structures",
  "lazy_static",
  "rand",
  "rand_chacha",
@@ -286,6 +287,15 @@ version = "1.0.0"
 source = "git+https://github.com/dfinity/ic#c5e098e8cc8e62249e6d7f4ed09e6c2ed87fc800"
 dependencies = [
  "sha3",
+]
+
+[[package]]
+name = "ic-stable-structures"
+version = "0.6.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b492c5a16455ae78623eaa12ead96dda6c69a83c535b1b00789f19b381c8a24c"
+dependencies = [
+ "ic_principal",
 ]
 
 [[package]]

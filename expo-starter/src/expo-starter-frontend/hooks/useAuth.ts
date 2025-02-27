@@ -12,34 +12,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { getCanisterURL } from '@/icp/getCanisterURL';
 import { ENV_VARS } from '@/icp/env.generated';
-import { router, usePathname, Href } from 'expo-router';
+import { usePathname } from 'expo-router';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AuthClient } from '@dfinity/auth-client';
 import { Platform } from 'react-native';
 import { Principal } from '@dfinity/principal';
-import { ICPWorker, MessageType } from '@/icp/ICPWorker';
+import { AesOperations } from '@/icp/AesOperations';
+import { restorePreLoginScreen } from '@/utils/navigationUtils';
 
-const navigate = (path: string) => {
-  try {
-    // Try to navigate to the stored path
-    router.replace(path as Href);
-  } catch {
-    // If navigation fails, go to the home page
-    console.warn('Navigation failed, redirecting to home');
-    router.replace('/');
-  }
-};
-
-const restorePreLoginScreen = async () => {
-  const path = await AsyncStorage.getItem('lastPath');
-
-  if (path) {
-    navigate(path);
-    await AsyncStorage.removeItem('lastPath');
-  } else {
-    router.replace('/');
-  }
-};
+// Create a single instance of AesOperations to be used across the app
+const aesOperations = new AesOperations();
 
 export function useAuth() {
   const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
@@ -54,7 +36,7 @@ export function useAuth() {
   const [authClient, setAuthClient] = useState<AuthClient | undefined>(
     undefined,
   );
-  const [worker] = useState(() => new ICPWorker());
+  const [aesKeyStatus, setAesKeyStatus] = useState<boolean>(false);
 
   // Initialize auth state
   useEffect(() => {
@@ -116,6 +98,15 @@ export function useAuth() {
     })();
   }, []);
 
+  // Check initial AES key status
+  useEffect(() => {
+    if (isReady) {
+      const hasKey = aesOperations.hasAesKey();
+      console.log('Initial AES key status check:', hasKey);
+      setAesKeyStatus(hasKey);
+    }
+  }, [isReady]);
+
   // Handle URL changes for login callback
   useEffect(() => {
     if (identity || !baseKey || !url) {
@@ -134,7 +125,45 @@ export function useAuth() {
       WebBrowser.dismissBrowser();
       restorePreLoginScreen();
     }
-  }, [url, baseKey]);
+  }, [url, baseKey, identity]);
+
+  // Wrap AesOperations methods to update aesKeyStatus when needed
+  const decryptExistingAesKey = async (
+    encryptedAesKey: Uint8Array,
+    encryptedKey: Uint8Array,
+    publicKey: Uint8Array,
+    principal: Principal,
+  ): Promise<void> => {
+    await aesOperations.decryptExistingAesKey(
+      encryptedAesKey,
+      encryptedKey,
+      publicKey,
+      principal,
+    );
+    setAesKeyStatus(aesOperations.hasAesKey());
+  };
+
+  const generateAesKey = async (): Promise<void> => {
+    await aesOperations.generateAesKey();
+    setAesKeyStatus(aesOperations.hasAesKey());
+  };
+
+  const generateAndEncryptAesKey = async (
+    publicKey: Uint8Array,
+    principal: Principal,
+  ): Promise<Uint8Array> => {
+    const result = await aesOperations.generateAndEncryptAesKey(
+      publicKey,
+      principal,
+    );
+    setAesKeyStatus(aesOperations.hasAesKey());
+    return result;
+  };
+
+  const clearAesRawKey = (): void => {
+    aesOperations.clearAesRawKey();
+    setAesKeyStatus(false);
+  };
 
   const login = async () => {
     if (Platform.OS === 'web') {
@@ -199,134 +228,20 @@ export function useAuth() {
     }
   };
 
-  /**
-   * Initialize or decrypt AES key
-   * @param params - Parameters for AES key operation
-   * @param params.publicKey - Public key for IBE encryption/decryption
-   * @param params.principal - Principal for IBE encryption/decryption
-   * @param params.encryptedAesKey - Optional encrypted AES key for decryption
-   * @param params.encryptedKey - Optional encrypted key for decryption
-   * @returns Promise with the encrypted AES key (when generating) or undefined (when decrypting)
-   */
-  const initializeAesKey = ({
-    publicKey,
-    principal,
-    encryptedAesKey,
-    encryptedKey,
-  }: {
-    publicKey: Uint8Array;
-    principal: Principal;
-    encryptedAesKey?: Uint8Array;
-    encryptedKey?: Uint8Array;
-  }): Promise<Uint8Array | undefined> => {
-    return worker
-      .postMessage({
-        type: MessageType.INITIALIZE_AES_KEY,
-        data: { publicKey, principal, encryptedAesKey, encryptedKey },
-      })
-      .then((response) => {
-        if (response.error) {
-          console.error(
-            'Error initializing/decrypting AES key:',
-            response.error,
-          );
-          throw new Error(`AES key initialization failed: ${response.error}`);
-        }
-        return response.data;
-      })
-      .catch((error) => {
-        console.error('Failed to initialize/decrypt AES key:', error);
-        throw error;
-      });
-  };
-
-  /**
-   * Encrypt data using AES with the stored key
-   * @param params - Parameters for AES encryption
-   * @param params.plaintext - Data to encrypt
-   * @returns Promise with the encrypted data
-   * @throws Error if encryption fails
-   */
-  const aesEncrypt = ({
-    plaintext,
-  }: {
-    plaintext: Uint8Array;
-  }): Promise<Uint8Array> => {
-    return worker
-      .postMessage({
-        type: MessageType.AES_ENCRYPT,
-        data: { plaintext },
-      })
-      .then((response) => {
-        if (response.error) {
-          console.error('Error encrypting with stored key:', response.error);
-          throw new Error(`Encryption failed: ${response.error}`);
-        }
-        if (!response.data) {
-          throw new Error('Encryption returned no data');
-        }
-        return response.data;
-      })
-      .catch((error) => {
-        console.error('Failed to encrypt with stored key:', error);
-        throw error;
-      });
-  };
-
-  /**
-   * Decrypt data using AES with the stored key
-   * @param params - Parameters for AES decryption
-   * @param params.ciphertext - Data to decrypt
-   * @returns Promise with the decrypted data
-   * @throws Error if decryption fails
-   */
-  const aesDecrypt = ({
-    ciphertext,
-  }: {
-    ciphertext: Uint8Array;
-  }): Promise<Uint8Array> => {
-    return worker
-      .postMessage({
-        type: MessageType.AES_DECRYPT,
-        data: { ciphertext },
-      })
-      .then((response) => {
-        if (response.error) {
-          console.error('Error decrypting with stored key:', response.error);
-          throw new Error(`Decryption failed: ${response.error}`);
-        }
-        if (!response.data) {
-          throw new Error('Decryption returned no data');
-        }
-        return response.data;
-      })
-      .catch((error) => {
-        console.error('Failed to decrypt with stored key:', error);
-        throw error;
-      });
-  };
-
-  /**
-   * Check if the worker has an AES key
-   * @returns boolean indicating if a key is available
-   */
-  const hasAesKey = (): boolean => {
-    return worker.hasAesKey();
-  };
-
-  const getTransportPublicKey = (): Uint8Array => {
-    return worker.getTransportPublicKey();
-  };
-
   return {
     identity,
     isReady,
+    isAuthenticated: !!identity,
     login,
     logout,
-    initializeAesKey,
-    aesEncrypt,
-    aesDecrypt,
-    hasAesKey,
-    getTransportPublicKey,
+    decryptExistingAesKey,
+    generateAesKey,
+    generateAndEncryptAesKey,
+    aesEncrypt: aesOperations.aesEncrypt.bind(aesOperations),
+    aesDecrypt: aesOperations.aesDecrypt.bind(aesOperations),
+    hasAesKey: aesKeyStatus,
+    clearAesRawKey,
+    getTransportPublicKey:
+      aesOperations.getTransportPublicKey.bind(aesOperations),
   };
 }
