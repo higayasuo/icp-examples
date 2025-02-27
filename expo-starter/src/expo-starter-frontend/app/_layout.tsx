@@ -13,6 +13,8 @@ import {
   Text,
   StyleSheet,
   Pressable,
+  Alert,
+  Platform,
 } from 'react-native';
 
 import { createBackend } from '@/icp/backend';
@@ -62,6 +64,7 @@ function RootLayoutNav() {
   const {
     isReady,
     identity,
+    logout,
     decryptExistingAesKey,
     generateAesKey,
     generateAndEncryptAesKey,
@@ -72,7 +75,7 @@ function RootLayoutNav() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const initializationCompleted = useRef(false);
-  const initializationAttempted = useRef(false);
+  const lastIdentityRef = useRef<string | null>(null);
 
   // Initialize AES key function
   const initAesKey = useCallback(async () => {
@@ -82,7 +85,11 @@ function RootLayoutNav() {
     try {
       setError(null);
       setIsLoading(true);
-      initializationAttempted.current = true;
+
+      // Store current identity principal for tracking changes
+      lastIdentityRef.current = identity
+        ? identity.getPrincipal().toString()
+        : null;
 
       if (!identity) {
         console.log('No identity found, generating new AES key');
@@ -99,6 +106,10 @@ function RootLayoutNav() {
       const backend = createBackend(identity);
       const transportPublicKey = getTransportPublicKey();
 
+      console.log(
+        'Fetching keys for identity:',
+        identity.getPrincipal().toString(),
+      );
       const keysReply = await backend.asymmetric_keys(transportPublicKey);
       const publicKey = keysReply.public_key as Uint8Array;
       const encryptedAesKey = keysReply.encrypted_aes_key?.[0] as
@@ -150,14 +161,43 @@ function RootLayoutNav() {
     generateAndEncryptAesKey,
   ]);
 
-  // Auto-initialize on first load
+  // Initialize on first load and when identity changes
   useEffect(() => {
-    if (!isReady || initializationAttempted.current) {
-      return;
+    if (!isReady) return;
+
+    const currentIdentity = identity
+      ? identity.getPrincipal().toString()
+      : null;
+    const identityChanged = currentIdentity !== lastIdentityRef.current;
+
+    // Log identity state for debugging
+    console.log('Identity state:', {
+      current: currentIdentity,
+      previous: lastIdentityRef.current,
+      changed: identityChanged,
+      initializationCompleted: initializationCompleted.current,
+    });
+
+    // Reset initialization flag when identity changes
+    if (identityChanged) {
+      console.log('Identity changed, resetting initialization flag');
+      initializationCompleted.current = false;
     }
 
-    initAesKey();
-  }, [isReady, initAesKey]);
+    // Run initialization if:
+    // 1. Identity changed (which means we need to initialize for the new identity)
+    // 2. OR we've never run initialization before
+    // 3. AND we're not already initialized
+    if (
+      ((identity && identityChanged) || lastIdentityRef.current === null) &&
+      !initializationCompleted.current
+    ) {
+      console.log(
+        'Identity changed or first initialization, running initAesKey',
+      );
+      initAesKey();
+    }
+  }, [isReady, identity, initAesKey]);
 
   // Handle retry
   const handleRetry = () => {
@@ -182,6 +222,113 @@ function RootLayoutNav() {
       setIsLoading(false);
     }
   };
+
+  // Handle close error screen
+  const handleClose = () => {
+    setError(null);
+    initializationCompleted.current = true;
+  };
+
+  // Handle logout with confirmation
+  const handleLogout = () => {
+    console.log('Logout button clicked');
+
+    // For debugging - log the platform
+    console.log('Platform:', Platform.OS);
+
+    // Use a more direct approach for the alert
+    if (Platform.OS === 'web') {
+      // For web, we can't use Alert, so just proceed with logout
+      console.log('Web platform detected, proceeding with logout directly');
+      performLogout();
+    } else {
+      // For native platforms, show the confirmation dialog
+      Alert.alert(
+        'Confirm Logout',
+        'Logging out will reset your state. Continue?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => console.log('Logout cancelled'),
+          },
+          {
+            text: 'Logout',
+            style: 'destructive',
+            onPress: performLogout,
+          },
+        ],
+        { cancelable: true },
+      );
+    }
+  };
+
+  // Separate the actual logout logic for clarity
+  const performLogout = () => {
+    console.log('Performing logout...');
+
+    // Use a simpler approach with fewer async operations
+    setIsLoading(true);
+    setInitializationStatus('Logging out...');
+
+    // First clear the AES key
+    clearAesRawKey();
+    console.log('AES key cleared');
+
+    // Then call logout and handle the promise
+    logout()
+      .then(() => {
+        console.log('Logout successful');
+        // Reset state after successful logout
+        setError(null);
+        initializationCompleted.current = false;
+        lastIdentityRef.current = null;
+
+        // Generate a new AES key for anonymous user
+        return generateAesKey();
+      })
+      .then(() => {
+        console.log('New AES key generated after logout');
+        setInitializationStatus('Logged out successfully');
+      })
+      .catch((err) => {
+        console.error('Error during logout process:', err);
+        setError(err instanceof Error ? err : new Error(String(err)));
+
+        // Try to generate a key anyway
+        return generateAesKey()
+          .then(() => console.log('Fallback key generated'))
+          .catch((keyErr) =>
+            console.error('Failed to generate fallback key:', keyErr),
+          );
+      })
+      .finally(() => {
+        console.log('Logout process completed, setting isLoading to false');
+        setIsLoading(false);
+      });
+  };
+
+  // Add a special effect to handle post-logout initialization
+  useEffect(() => {
+    // If we're ready and there's no identity (after logout), ensure we have an AES key
+    // But only if initialization hasn't been completed and we don't have an AES key
+    if (
+      isReady &&
+      !identity &&
+      !auth.hasAesKey &&
+      !initializationCompleted.current
+    ) {
+      console.log('No identity and no AES key, generating new key');
+      generateAesKey()
+        .then(() => {
+          initializationCompleted.current = true;
+          console.log('Post-logout key generation completed');
+        })
+        .catch((err) => {
+          console.error('Failed to generate AES key after logout:', err);
+        });
+    }
+  }, [isReady, identity, auth.hasAesKey, generateAesKey]);
 
   if (!isReady) {
     return (
@@ -221,18 +368,36 @@ function RootLayoutNav() {
               <Text style={styles.buttonText}>Retry</Text>
             </Pressable>
 
-            <Pressable
-              style={styles.localKeyButton}
-              onPress={handleContinueWithLocalKey}
-            >
-              <Text style={styles.buttonText}>Continue with Local Key</Text>
-            </Pressable>
+            {identity ? (
+              <Pressable style={styles.closeButton} onPress={handleClose}>
+                <Text style={styles.buttonText}>Close</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.localKeyButton}
+                onPress={handleContinueWithLocalKey}
+              >
+                <Text style={styles.buttonText}>Continue with Local Key</Text>
+              </Pressable>
+            )}
+
+            {identity && (
+              <Pressable
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                accessibilityRole="button"
+                accessibilityLabel="Logout"
+                accessibilityHint="Logs you out of the application"
+              >
+                <Text style={styles.buttonText}>Logout</Text>
+              </Pressable>
+            )}
           </View>
 
           <Text style={styles.hintText}>
-            You can retry connecting to the backend or continue with a local
-            encryption key. A local key will work for this session but won't be
-            synchronized with your account.
+            {identity
+              ? 'You can retry connecting to the backend or close this message to continue with limited functionality. If problems persist, logging out will reset your state.'
+              : "You can retry connecting to the backend or continue with a local encryption key. A local key will work for this session but won't be synchronized with your account."}
           </Text>
         </View>
       </View>
@@ -330,20 +495,46 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 16,
     gap: 12,
+    flexWrap: 'wrap',
   },
   retryButton: {
     backgroundColor: '#007AFF',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   localKeyButton: {
     backgroundColor: '#34C759',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButton: {
+    backgroundColor: '#8E8E93',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButton: {
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: 'white',
