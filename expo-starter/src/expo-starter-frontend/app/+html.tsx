@@ -14,7 +14,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
           httpEquiv="Content-Security-Policy"
           content="default-src 'self';
             script-src 'self' 'unsafe-eval' 'unsafe-inline';
-            connect-src 'self' http://localhost:* http://*.localhost:* https://192.168.0.210:* http://192.168.0.210:* https://icp0.io https://*.icp0.io https://icp-api.io https://identity.ic0.app https://ic0.app https://*.ic0.app https://*.raw.ic0.app;
+            connect-src 'self' http://localhost:4943 http://*.localhost:4943 https://192.168.0.210:* https://icp0.io https://*.icp0.io https://icp-api.io https://identity.ic0.app https://ic0.app https://*.ic0.app https://*.raw.ic0.app;
             img-src 'self' data:;
             style-src * 'unsafe-inline';
             style-src-elem * 'unsafe-inline';

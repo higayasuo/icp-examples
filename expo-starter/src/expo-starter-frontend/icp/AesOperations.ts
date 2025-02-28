@@ -15,10 +15,12 @@ export class AesOperations {
   // Internal state
   private aesRawKey: Uint8Array | undefined = undefined;
   private tsk: TransportSecretKeyWrapper;
+  public readonly transportPublicKey: Uint8Array;
 
   constructor() {
     const tskSeed = platformCrypto.getRandomBytes(32);
     this.tsk = createTransportSecretKey(tskSeed);
+    this.transportPublicKey = this.tsk.getPublicKey();
   }
 
   /**
@@ -35,7 +37,6 @@ export class AesOperations {
     principal: Principal,
   ): Promise<void> {
     try {
-      console.log('AesOperations: Decrypting AES key - start');
       const startTime = performance.now();
 
       const decryptedKey = await ibeDecrypt({
@@ -98,7 +99,6 @@ export class AesOperations {
     principal: Principal,
   ): Promise<Uint8Array> {
     try {
-      console.log('AesOperations: Encrypting AES key - start');
       // Start IBE encryption process
       const startTime = performance.now();
 
@@ -114,7 +114,7 @@ export class AesOperations {
 
       const endTime = performance.now();
       console.log(
-        `AesOperations: AES Key decryption completed in ${
+        `AesOperations: AES Key encryption completed in ${
           endTime - startTime
         }ms`,
       );
@@ -158,26 +158,17 @@ export class AesOperations {
   }
 
   /**
-   * Get transport public key
-   * @returns Transport public key as Uint8Array
+   * Clear AES key
    */
-  getTransportPublicKey(): Uint8Array {
-    return this.tsk.getPublicKey();
+  clearAesRawKey(): void {
+    this.aesRawKey = undefined;
   }
 
   /**
    * Check if AES key exists
    * @returns True if AES key exists, false otherwise
    */
-  hasAesKey(): boolean {
+  get hasAesKey(): boolean {
     return this.aesRawKey !== undefined;
-  }
-
-  /**
-   * Clear AES key
-   */
-  clearAesRawKey(): void {
-    this.aesRawKey = undefined;
-    console.log('AesOperations: AES key cleared');
   }
 }

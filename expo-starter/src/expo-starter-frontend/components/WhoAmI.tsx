@@ -14,26 +14,26 @@ import {
   disabledButtonStyles,
   buttonTextStyles,
 } from './styles';
-
-interface WhoAmIProps {
-  backend: ActorSubclass<_SERVICE>;
-}
+import { useAuthContext } from '@/contexts/AuthContext';
+import { createBackend } from '@/icp/backend';
 
 /**
  * Component that displays the whoami functionality
  */
-export const WhoAmI = ({ backend }: WhoAmIProps) => {
+export const WhoAmI = () => {
+  const { identity } = useAuthContext();
   const [who, setWho] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const agent = Actor.agentOf(backend);
   const { width } = useWindowDimensions();
 
   useEffect(() => {
     setWho(undefined);
-  }, [agent]);
+  }, [identity]);
 
   const whoami = async () => {
+    const backend = createBackend(identity);
+
     if (!backend) {
       throw new Error('backend is not ready');
     }

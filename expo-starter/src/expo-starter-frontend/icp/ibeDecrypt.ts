@@ -1,5 +1,5 @@
 import { Principal } from '@dfinity/principal';
-import * as vetkd from 'ic-vetkd-utils';
+import * as vetkd from 'ic-vetkd-utils-wasm2js';
 import { TransportSecretKeyWrapper } from './TransportSecretKeyWrapper';
 
 export interface IBEDecryptParams {

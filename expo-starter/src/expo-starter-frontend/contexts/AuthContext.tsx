@@ -12,7 +12,7 @@ interface AuthContextType {
   aesDecrypt: (params: { ciphertext: Uint8Array }) => Promise<Uint8Array>;
   hasAesKey: boolean;
   clearAesRawKey: () => void;
-  getTransportPublicKey: () => Uint8Array;
+  transportPublicKey: Uint8Array;
   decryptExistingAesKey: (
     encryptedAesKey: Uint8Array,
     encryptedKey: Uint8Array,

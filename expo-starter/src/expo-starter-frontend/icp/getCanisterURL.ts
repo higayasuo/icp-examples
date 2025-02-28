@@ -1,8 +1,7 @@
 import { ENV_VARS } from './env.generated';
-import { getCanisterLocalhostSubdomainURL } from './getCanisterLocalhostSubdomainURL';
-import { isLocalhostSubdomainSupported } from './isLocalhostSubdomainSupported';
 import { HOST_ADDRESS } from './constants';
 
+const REPLICA_PORT = 4943;
 /**
  * Constructs the URL for accessing a canister.
  * @param {string} canisterId - The ID of the canister.
@@ -10,11 +9,12 @@ import { HOST_ADDRESS } from './constants';
  */
 export const getCanisterURL = (canisterId: string): string => {
   if (ENV_VARS.DFX_NETWORK !== 'local') {
-    return `https://${canisterId}.ic0.app`;
+    const url = `https://${canisterId}.ic0.app`;
+    return url;
   }
 
-  if (isLocalhostSubdomainSupported()) {
-    return getCanisterLocalhostSubdomainURL(canisterId);
+  if (window?.location?.origin?.includes('localhost')) {
+    return `http://localhost:${REPLICA_PORT}/?canisterId=${canisterId}`;
   }
 
   return `https://${HOST_ADDRESS}:14943/?canisterId=${canisterId}`;

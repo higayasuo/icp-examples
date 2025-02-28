@@ -40,6 +40,7 @@
     "expo-system-ui": "~4.0.8",
     "expo-web-browser": "~14.0.2",
     "ic-vetkd-utils": "file:ic-vetkd-utils-0.1.0.tgz",
+    "ic-vetkd-utils-wasm2js": "file:ic-vetkd-utils-wasm2js-0.1.0.tgz",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.7",

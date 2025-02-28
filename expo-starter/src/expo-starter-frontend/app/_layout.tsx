@@ -69,33 +69,34 @@ function RootLayoutNav() {
     generateAesKey,
     generateAndEncryptAesKey,
     clearAesRawKey,
-    getTransportPublicKey,
+    transportPublicKey,
   } = auth;
   const [initializationStatus, setInitializationStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<Error | undefined>(undefined);
   const initializationCompleted = useRef(false);
-  const lastIdentityRef = useRef<string | null>(null);
+  const lastIdentityRef = useRef<string | undefined>(undefined);
 
   // Initialize AES key function
   const initAesKey = useCallback(async () => {
     // Don't run if already loading
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
 
     try {
-      setError(null);
+      const totalStartTime = performance.now();
+      setError(undefined);
       setIsLoading(true);
 
       // Store current identity principal for tracking changes
       lastIdentityRef.current = identity
-        ? identity.getPrincipal().toString()
-        : null;
+        ? identity.getPrincipal().toText()
+        : undefined;
 
       if (!identity) {
         console.log('No identity found, generating new AES key');
-        setInitializationStatus('Generating new AES key...');
         await generateAesKey();
-        setInitializationStatus('AES key generated');
         initializationCompleted.current = true;
         return;
       }
@@ -104,13 +105,17 @@ function RootLayoutNav() {
       setInitializationStatus('Fetching keys from backend...');
 
       const backend = createBackend(identity);
-      const transportPublicKey = getTransportPublicKey();
 
-      console.log(
-        'Fetching keys for identity:',
-        identity.getPrincipal().toString(),
-      );
+      const backendCallStartTime = performance.now();
+      setInitializationStatus('Calling backend for keys...');
+
       const keysReply = await backend.asymmetric_keys(transportPublicKey);
+      console.log(
+        `Backend asymmetric_keys call took: ${
+          performance.now() - backendCallStartTime
+        }ms`,
+      );
+
       const publicKey = keysReply.public_key as Uint8Array;
       const encryptedAesKey = keysReply.encrypted_aes_key?.[0] as
         | Uint8Array
@@ -123,26 +128,53 @@ function RootLayoutNav() {
       if (encryptedAesKey && encryptedKey) {
         console.log('Decrypting existing AES key');
         setInitializationStatus('Decrypting existing AES key...');
+
+        const decryptStartTime = performance.now();
         await decryptExistingAesKey(
           encryptedAesKey,
           encryptedKey,
           publicKey,
           principal,
         );
+        console.log(
+          `Decrypting existing AES key took: ${
+            performance.now() - decryptStartTime
+          }ms`,
+        );
       } else {
         console.log('Generating and encrypting new AES key');
         setInitializationStatus('Generating and encrypting new AES key...');
+
+        const generateStartTime = performance.now();
         const newEncryptedAesKey = await generateAndEncryptAesKey(
           publicKey,
           principal,
         );
+        console.log(
+          `Generating and encrypting new AES key took: ${
+            performance.now() - generateStartTime
+          }ms`,
+        );
+
         console.log('Saving new encrypted AES key');
         setInitializationStatus('Saving encrypted AES key...');
+
+        const saveStartTime = performance.now();
         await backend.asymmetric_save_encrypted_aes_key(newEncryptedAesKey);
+        console.log(
+          `Saving encrypted AES key took: ${
+            performance.now() - saveStartTime
+          }ms`,
+        );
       }
 
       setInitializationStatus('AES key initialization completed');
       initializationCompleted.current = true;
+      console.log(
+        `Total initialization process took: ${
+          performance.now() - totalStartTime
+        }ms`,
+      );
     } catch (err) {
       console.error('Failed to initialize AES key:', err);
       setInitializationStatus(`Failed to initialize AES key: ${err}`);
@@ -156,7 +188,7 @@ function RootLayoutNav() {
     isLoading,
     generateAesKey,
     clearAesRawKey,
-    getTransportPublicKey,
+    transportPublicKey,
     decryptExistingAesKey,
     generateAndEncryptAesKey,
   ]);
@@ -166,17 +198,9 @@ function RootLayoutNav() {
     if (!isReady) return;
 
     const currentIdentity = identity
-      ? identity.getPrincipal().toString()
-      : null;
+      ? identity.getPrincipal().toText()
+      : undefined;
     const identityChanged = currentIdentity !== lastIdentityRef.current;
-
-    // Log identity state for debugging
-    console.log('Identity state:', {
-      current: currentIdentity,
-      previous: lastIdentityRef.current,
-      changed: identityChanged,
-      initializationCompleted: initializationCompleted.current,
-    });
 
     // Reset initialization flag when identity changes
     if (identityChanged) {
@@ -189,7 +213,8 @@ function RootLayoutNav() {
     // 2. OR we've never run initialization before
     // 3. AND we're not already initialized
     if (
-      ((identity && identityChanged) || lastIdentityRef.current === null) &&
+      ((identity && identityChanged) ||
+        lastIdentityRef.current === undefined) &&
       !initializationCompleted.current
     ) {
       console.log(
@@ -206,7 +231,7 @@ function RootLayoutNav() {
 
   // Handle continue with local key
   const handleContinueWithLocalKey = async () => {
-    setError(null);
+    setError(undefined);
     setInitializationStatus('Generating local AES key...');
     setIsLoading(true);
 
@@ -225,17 +250,12 @@ function RootLayoutNav() {
 
   // Handle close error screen
   const handleClose = () => {
-    setError(null);
+    setError(undefined);
     initializationCompleted.current = true;
   };
 
   // Handle logout with confirmation
   const handleLogout = () => {
-    console.log('Logout button clicked');
-
-    // For debugging - log the platform
-    console.log('Platform:', Platform.OS);
-
     // Use a more direct approach for the alert
     if (Platform.OS === 'web') {
       // For web, we can't use Alert, so just proceed with logout
@@ -271,64 +291,30 @@ function RootLayoutNav() {
     setIsLoading(true);
     setInitializationStatus('Logging out...');
 
-    // First clear the AES key
-    clearAesRawKey();
-    console.log('AES key cleared');
-
     // Then call logout and handle the promise
     logout()
       .then(() => {
         console.log('Logout successful');
         // Reset state after successful logout
-        setError(null);
+        setError(undefined);
         initializationCompleted.current = false;
-        lastIdentityRef.current = null;
-
-        // Generate a new AES key for anonymous user
-        return generateAesKey();
-      })
-      .then(() => {
-        console.log('New AES key generated after logout');
+        lastIdentityRef.current = undefined;
         setInitializationStatus('Logged out successfully');
+
+        // After logout, we need to ensure we have an AES key for anonymous operations
+        if (!auth.hasAesKey) {
+          console.log('No AES key after logout, initializing anonymous key');
+          // This will trigger initAesKey in the identity change effect
+        }
       })
       .catch((err) => {
         console.error('Error during logout process:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
-
-        // Try to generate a key anyway
-        return generateAesKey()
-          .then(() => console.log('Fallback key generated'))
-          .catch((keyErr) =>
-            console.error('Failed to generate fallback key:', keyErr),
-          );
       })
       .finally(() => {
-        console.log('Logout process completed, setting isLoading to false');
         setIsLoading(false);
       });
   };
-
-  // Add a special effect to handle post-logout initialization
-  useEffect(() => {
-    // If we're ready and there's no identity (after logout), ensure we have an AES key
-    // But only if initialization hasn't been completed and we don't have an AES key
-    if (
-      isReady &&
-      !identity &&
-      !auth.hasAesKey &&
-      !initializationCompleted.current
-    ) {
-      console.log('No identity and no AES key, generating new key');
-      generateAesKey()
-        .then(() => {
-          initializationCompleted.current = true;
-          console.log('Post-logout key generation completed');
-        })
-        .catch((err) => {
-          console.error('Failed to generate AES key after logout:', err);
-        });
-    }
-  }, [isReady, identity, auth.hasAesKey, generateAesKey]);
 
   if (!isReady) {
     return (

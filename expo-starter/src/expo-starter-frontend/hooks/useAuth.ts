@@ -16,7 +16,6 @@ import { usePathname } from 'expo-router';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AuthClient } from '@dfinity/auth-client';
 import { Platform } from 'react-native';
-import { Principal } from '@dfinity/principal';
 import { AesOperations } from '@/icp/AesOperations';
 import { restorePreLoginScreen } from '@/utils/navigationUtils';
 
@@ -36,7 +35,6 @@ export function useAuth() {
   const [authClient, setAuthClient] = useState<AuthClient | undefined>(
     undefined,
   );
-  const [aesKeyStatus, setAesKeyStatus] = useState<boolean>(false);
 
   // Initialize auth state
   useEffect(() => {
@@ -49,7 +47,6 @@ export function useAuth() {
       if (Platform.OS === 'web') {
         const authClient = await AuthClient.create();
         setAuthClient(authClient);
-        console.log('authClient created');
         const authenticated = await authClient.isAuthenticated();
         console.log('authenticated', authenticated);
 
@@ -98,15 +95,6 @@ export function useAuth() {
     })();
   }, []);
 
-  // Check initial AES key status
-  useEffect(() => {
-    if (isReady) {
-      const hasKey = aesOperations.hasAesKey();
-      console.log('Initial AES key status check:', hasKey);
-      setAesKeyStatus(hasKey);
-    }
-  }, [isReady]);
-
   // Handle URL changes for login callback
   useEffect(() => {
     if (identity || !baseKey || !url) {
@@ -126,44 +114,6 @@ export function useAuth() {
       restorePreLoginScreen();
     }
   }, [url, baseKey, identity]);
-
-  // Wrap AesOperations methods to update aesKeyStatus when needed
-  const decryptExistingAesKey = async (
-    encryptedAesKey: Uint8Array,
-    encryptedKey: Uint8Array,
-    publicKey: Uint8Array,
-    principal: Principal,
-  ): Promise<void> => {
-    await aesOperations.decryptExistingAesKey(
-      encryptedAesKey,
-      encryptedKey,
-      publicKey,
-      principal,
-    );
-    setAesKeyStatus(aesOperations.hasAesKey());
-  };
-
-  const generateAesKey = async (): Promise<void> => {
-    await aesOperations.generateAesKey();
-    setAesKeyStatus(aesOperations.hasAesKey());
-  };
-
-  const generateAndEncryptAesKey = async (
-    publicKey: Uint8Array,
-    principal: Principal,
-  ): Promise<Uint8Array> => {
-    const result = await aesOperations.generateAndEncryptAesKey(
-      publicKey,
-      principal,
-    );
-    setAesKeyStatus(aesOperations.hasAesKey());
-    return result;
-  };
-
-  const clearAesRawKey = (): void => {
-    aesOperations.clearAesRawKey();
-    setAesKeyStatus(false);
-  };
 
   const login = async () => {
     if (Platform.OS === 'web') {
@@ -234,14 +184,15 @@ export function useAuth() {
     isAuthenticated: !!identity,
     login,
     logout,
-    decryptExistingAesKey,
-    generateAesKey,
-    generateAndEncryptAesKey,
+    decryptExistingAesKey:
+      aesOperations.decryptExistingAesKey.bind(aesOperations),
+    generateAesKey: aesOperations.generateAesKey.bind(aesOperations),
+    generateAndEncryptAesKey:
+      aesOperations.generateAndEncryptAesKey.bind(aesOperations),
     aesEncrypt: aesOperations.aesEncrypt.bind(aesOperations),
     aesDecrypt: aesOperations.aesDecrypt.bind(aesOperations),
-    hasAesKey: aesKeyStatus,
-    clearAesRawKey,
-    getTransportPublicKey:
-      aesOperations.getTransportPublicKey.bind(aesOperations),
+    hasAesKey: aesOperations.hasAesKey,
+    clearAesRawKey: aesOperations.clearAesRawKey.bind(aesOperations),
+    transportPublicKey: aesOperations.transportPublicKey,
   };
 }

@@ -25,13 +25,10 @@ export function createActor<T>({
   interfaceFactory,
   identity = new AnonymousIdentity(),
 }: CreateActorParams): ActorSubclass<T> {
-  console.log(
-    `createActor canisterId: ${canisterId} identity: ${identity
-      .getPrincipal()
-      .toText()}`,
-  );
+  const host = getCanisterURL(canisterId);
+
   const httpAgentOptions = {
-    host: getCanisterURL(canisterId),
+    host,
     identity,
     // fetchOptions: {
     //   reactNative: {
@@ -49,7 +46,7 @@ export function createActor<T>({
 
   if (ENV_VARS.DFX_NETWORK === 'local') {
     agent.fetchRootKey().catch((err) => {
-      console.warn('Your local replica is not running');
+      console.warn(`Your local replica is not running: ${host}`);
       console.error(err);
       throw err;
     });

@@ -41,11 +41,28 @@ export const AesIbeCipher = () => {
 
     setBusy(true);
     setError(undefined);
+    setStatus('Starting encryption...'); // Allow UI to update
 
-    const plaintextBytes = new TextEncoder().encode(inputText);
-    const ciphertext = await aesEncrypt({ plaintext: plaintextBytes });
-    const decrypted = await aesDecrypt({ ciphertext });
-    setResult(new TextDecoder().decode(decrypted));
+    try {
+      const plaintextBytes = new TextEncoder().encode(inputText);
+
+      setStatus('Encrypting...');
+
+      const ciphertext = await aesEncrypt({ plaintext: plaintextBytes });
+
+      setStatus('Decrypting...');
+
+      const decrypted = await aesDecrypt({ ciphertext });
+
+      setResult(new TextDecoder().decode(decrypted));
+      setStatus('Encryption and decryption completed');
+    } catch (err) {
+      console.error('Error during encryption/decryption:', err);
+      setError(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      setStatus('Failed to complete operation');
+    } finally {
+      setBusy(false);
+    }
   };
 
   // Show loading indicator when AES key is not ready
@@ -71,6 +88,9 @@ export const AesIbeCipher = () => {
   // Create the main content
   const content = (
     <View style={styles.container}>
+      <View style={styles.statusContainer}>
+        <Text style={styles.statusText}>{status}</Text>
+      </View>
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Input Text:</Text>
         <TextInput

@@ -15,6 +15,9 @@ import { ibeEncrypt } from '@/icp/ibeEncrypt';
 import { ibeDecrypt } from '@/icp/ibeDecrypt';
 import { createTransportSecretKey } from '@/icp/TransportSecretKeyWrapper';
 
+// Utility function to allow UI thread to update
+const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 interface IbeCipherProps {
   backend: ActorSubclass<_SERVICE>;
 }
@@ -46,64 +49,71 @@ export const IbeCipher = ({ backend }: IbeCipherProps) => {
       return publicKey;
     }
 
+    setStatus('Fetching public key...');
+    await yieldToUI(); // Allow UI to update
+
     const t = performance.now();
-    const pk = (await backend.asymmetric_public_key()) as Uint8Array;
+    const keysReply = await backend.asymmetric_keys(new Uint8Array(0));
+    const pk = keysReply.public_key as Uint8Array;
     setPublicKey(pk);
     console.log(`Getting public key took: ${performance.now() - t}ms`);
     return pk;
   };
 
-  const handleEncrypt = () => {
+  const handleEncrypt = async () => {
     setBusy(true);
     setError(undefined);
     const startTime = performance.now();
     setStatus('Encryption starting...');
     console.log('IBE encryption starting...');
 
-    // Use then() chain for asynchronous operations
-    principalFromAgent(agent)
-      .then((principal) => {
-        console.log(
-          `Getting principal took: ${performance.now() - startTime}ms`,
-        );
-        return getPublicKey().then((publicKey) => ({ principal, publicKey }));
-      })
-      .then(({ principal, publicKey }) => {
-        const t3 = performance.now();
-        const seed = platformCrypto.getRandomBytes(32);
-        console.log(
-          `Generating random bytes took: ${performance.now() - t3}ms`,
-        );
+    try {
+      await yieldToUI(); // Allow UI to update
 
-        const t4 = performance.now();
-        return ibeEncrypt({
-          data: new TextEncoder().encode(plaintext),
-          principal,
-          publicKey,
-          seed,
-        }).then((encryptedBytes) => {
-          console.log(`IBE encryption took: ${performance.now() - t4}ms`);
-          return encryptedBytes;
-        });
-      })
-      .then((encryptedBytes) => {
-        setCiphertext(encryptedBytes);
-        setStatus('Encryption done');
-        console.log(
-          `Total encryption process took: ${performance.now() - startTime}ms`,
-        );
-      })
-      .catch((error) => {
-        setError(
-          `Error occurred during encryption: ${(error as Error).message}`,
-        );
-      })
-      .finally(() => {
-        setBusy(false);
+      // Get principal
+      setStatus('Getting principal...');
+      await yieldToUI(); // Allow UI to update
+      const principal = await principalFromAgent(agent);
+      console.log(`Getting principal took: ${performance.now() - startTime}ms`);
+
+      // Get public key
+      setStatus('Getting public key...');
+      await yieldToUI(); // Allow UI to update
+      const publicKey = await getPublicKey();
+
+      // Generate random bytes
+      setStatus('Generating random bytes...');
+      await yieldToUI(); // Allow UI to update
+      const t3 = performance.now();
+      const seed = platformCrypto.getRandomBytes(32);
+      console.log(`Generating random bytes took: ${performance.now() - t3}ms`);
+
+      // Encrypt data
+      setStatus('Encrypting data...');
+      await yieldToUI(); // Allow UI to update
+      const t4 = performance.now();
+      const encryptedBytes = await ibeEncrypt({
+        data: new TextEncoder().encode(plaintext),
+        principal,
+        publicKey,
+        seed,
       });
+      console.log(`IBE encryption took: ${performance.now() - t4}ms`);
+
+      // Set result
+      setCiphertext(encryptedBytes);
+      setStatus('Encryption done');
+      console.log(
+        `Total encryption process took: ${performance.now() - startTime}ms`,
+      );
+    } catch (error) {
+      setError(`Error occurred during encryption: ${(error as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleDecrypt = () => {
+  const handleDecrypt = async () => {
     if (!ciphertext) {
       setError('No ciphertext available');
       return;
@@ -115,69 +125,77 @@ export const IbeCipher = ({ backend }: IbeCipherProps) => {
     setStatus('Decryption starting...');
     console.log('IBE decryption starting...');
 
-    // Use then() chain for asynchronous operations
-    principalFromAgent(agent)
-      .then((principal) => {
-        console.log(
-          `Getting principal took: ${performance.now() - startTime}ms`,
-        );
+    try {
+      await yieldToUI(); // Allow UI to update
 
-        const t2 = performance.now();
-        const tskSeed = platformCrypto.getRandomBytes(32);
-        console.log(`Generating TSK seed took: ${performance.now() - t2}ms`);
+      // Get principal
+      setStatus('Getting principal...');
+      await yieldToUI(); // Allow UI to update
+      const principal = await principalFromAgent(agent);
+      console.log(`Getting principal took: ${performance.now() - startTime}ms`);
 
-        const t3 = performance.now();
-        const tsk = createTransportSecretKey(tskSeed);
-        const transportPublicKey = tsk.getPublicKey();
-        console.log(
-          `Creating TSK and getting public key took: ${
-            performance.now() - t3
-          }ms`,
-        );
+      // Generate TSK seed
+      setStatus('Generating TSK seed...');
+      await yieldToUI(); // Allow UI to update
+      const t2 = performance.now();
+      const tskSeed = platformCrypto.getRandomBytes(32);
+      console.log(`Generating TSK seed took: ${performance.now() - t2}ms`);
 
-        return backend
-          .asymmetric_encrypted_key(transportPublicKey)
-          .then((encryptedKey) => {
-            console.log(
-              `Getting encrypted IBE decryption key took: ${
-                performance.now() - t3
-              }ms`,
-            );
+      // Create TSK and get public key
+      setStatus('Creating TSK...');
+      await yieldToUI(); // Allow UI to update
+      const t3 = performance.now();
+      const tsk = createTransportSecretKey(tskSeed);
+      const transportPublicKey = tsk.getPublicKey();
+      console.log(
+        `Creating TSK and getting public key took: ${performance.now() - t3}ms`,
+      );
 
-            return getPublicKey().then((publicKey) => ({
-              principal,
-              encryptedKey: encryptedKey as Uint8Array,
-              publicKey,
-              tsk,
-            }));
-          });
-      })
-      .then(({ principal, encryptedKey, publicKey, tsk }) => {
-        const t6 = performance.now();
-        return ibeDecrypt({
-          ciphertext,
-          principal,
-          encryptedKey,
-          publicKey,
-          tsk,
-        }).then((decryptedBytes) => {
-          console.log(`IBE decryption took: ${performance.now() - t6}ms`);
-          return decryptedBytes;
-        });
-      })
-      .then((decryptedBytes) => {
-        setDecryptedText(new TextDecoder().decode(decryptedBytes));
-        setStatus('Decryption done');
-        console.log(
-          `Total decryption process took: ${performance.now() - startTime}ms`,
-        );
-      })
-      .catch((error) => {
-        setError(`Error occurred during decryption: ${error}`);
-      })
-      .finally(() => {
-        setBusy(false);
+      // Get encrypted key from the asymmetric_keys response
+      setStatus('Getting encrypted key...');
+      await yieldToUI(); // Allow UI to update
+      const keysReply = await backend.asymmetric_keys(transportPublicKey);
+      const encryptedKey = keysReply.encrypted_key?.[0] as Uint8Array;
+
+      if (!encryptedKey) {
+        throw new Error('Failed to get encrypted key from backend');
+      }
+
+      console.log(
+        `Getting encrypted IBE decryption key took: ${
+          performance.now() - t3
+        }ms`,
+      );
+
+      // Get public key
+      setStatus('Getting public key...');
+      await yieldToUI(); // Allow UI to update
+      const publicKey = await getPublicKey();
+
+      // Decrypt data
+      setStatus('Decrypting data...');
+      await yieldToUI(); // Allow UI to update
+      const t6 = performance.now();
+      const decryptedBytes = await ibeDecrypt({
+        ciphertext,
+        principal,
+        encryptedKey,
+        publicKey,
+        tsk,
       });
+      console.log(`IBE decryption took: ${performance.now() - t6}ms`);
+
+      // Set result
+      setDecryptedText(new TextDecoder().decode(decryptedBytes));
+      setStatus('Decryption done');
+      console.log(
+        `Total decryption process took: ${performance.now() - startTime}ms`,
+      );
+    } catch (error) {
+      setError(`Error occurred during decryption: ${error}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const canEncrypt = plaintext.trim().length > 0 && !busy;

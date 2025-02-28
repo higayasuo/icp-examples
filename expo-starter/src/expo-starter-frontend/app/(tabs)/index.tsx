@@ -1,11 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { WhoAmI } from '@/components/WhoAmI';
-import { createBackend } from '@/icp/backend';
 
 export default function TabOneScreen() {
-  const { identity, isReady } = useAuthContext();
-  const backend = createBackend(identity);
+  const { isReady } = useAuthContext();
 
   if (!isReady) {
     return null;
@@ -13,7 +11,7 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container} accessible={true}>
-      <WhoAmI backend={backend} />
+      <WhoAmI />
     </View>
   );
 }
