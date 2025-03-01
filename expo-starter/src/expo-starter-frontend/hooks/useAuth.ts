@@ -36,6 +36,11 @@ export function useAuth() {
     undefined,
   );
 
+  // Log pathname changes
+  useEffect(() => {
+    console.log('Current pathname in useAuth:', pathname);
+  }, [pathname]);
+
   // Initialize auth state
   useEffect(() => {
     if (isReady) {
@@ -101,21 +106,43 @@ export function useAuth() {
       return;
     }
 
+    console.log('URL changed:', url);
     const search = new URLSearchParams(url?.split('?')[1]);
     const delegation = search.get('delegation');
+    console.log('Delegation from URL:', delegation ? 'present' : 'not present');
 
     if (delegation) {
-      const chain = DelegationChain.fromJSON(JSON.parse(delegation));
-      AsyncStorage.setItem('delegation', JSON.stringify(chain.toJSON()));
-      const id = DelegationIdentity.fromDelegation(baseKey, chain);
-      setIdentity(id);
-      console.log('set identity from delegation');
-      WebBrowser.dismissBrowser();
-      restorePreLoginScreen();
+      (async () => {
+        try {
+          console.log('Processing delegation from URL');
+          const chain = DelegationChain.fromJSON(JSON.parse(delegation));
+          await AsyncStorage.setItem(
+            'delegation',
+            JSON.stringify(chain.toJSON()),
+          );
+          const id = DelegationIdentity.fromDelegation(baseKey, chain);
+          setIdentity(id);
+          console.log('set identity from delegation');
+          WebBrowser.dismissBrowser();
+
+          // Don't immediately restore the pre-login screen
+          // Instead, let the AES key initialization complete first
+          // The navigation will happen naturally as the app renders with the new identity
+          console.log(
+            'Identity set, AES key initialization will happen automatically',
+          );
+        } catch (error) {
+          console.error('Error in delegation processing:', error);
+        }
+      })();
     }
   }, [url, baseKey, identity]);
 
   const login = async () => {
+    // Save the current path before login
+    console.log('Saving path before login:', pathname);
+    await AsyncStorage.setItem('lastPath', pathname);
+
     if (Platform.OS === 'web') {
       if (!authClient) {
         throw new Error('Auth client not initialized');
@@ -152,12 +179,15 @@ export function useAuth() {
     url.searchParams.set('pubkey', pubkey);
     url.searchParams.set('ii_uri', iiUri);
 
-    await AsyncStorage.setItem('lastPath', pathname);
     await WebBrowser.openBrowserAsync(url.toString());
   };
 
   const logout = async () => {
     try {
+      // Save the current path before logout
+      console.log('Saving path before logout:', pathname);
+      await AsyncStorage.setItem('lastPath', pathname);
+
       if (Platform.OS === 'web') {
         if (!authClient) {
           throw new Error('Auth client not initialized');

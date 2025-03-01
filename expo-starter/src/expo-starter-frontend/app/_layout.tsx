@@ -16,8 +16,9 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBackend } from '@/icp/backend';
+import { restorePreLoginScreen, navigate } from '@/utils/navigationUtils';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -70,6 +71,7 @@ function RootLayoutNav() {
     generateAndEncryptAesKey,
     clearAesRawKey,
     transportPublicKey,
+    hasAesKey,
   } = auth;
   const [initializationStatus, setInitializationStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -175,6 +177,15 @@ function RootLayoutNav() {
           performance.now() - totalStartTime
         }ms`,
       );
+
+      // Instead of immediately navigating, just mark that navigation should happen
+      // The actual navigation will be handled in a separate effect that runs after mounting
+      const lastPath = await AsyncStorage.getItem('lastPath');
+      if (lastPath) {
+        console.log('Found saved path after AES key initialization:', lastPath);
+        // Don't navigate here - just leave the path in AsyncStorage
+        // It will be handled by a separate effect
+      }
     } catch (err) {
       console.error('Failed to initialize AES key:', err);
       setInitializationStatus(`Failed to initialize AES key: ${err}`);
@@ -206,23 +217,66 @@ function RootLayoutNav() {
     if (identityChanged) {
       console.log('Identity changed, resetting initialization flag');
       initializationCompleted.current = false;
+
+      // Immediately run initAesKey when identity changes
+      console.log('Identity changed, immediately running initAesKey');
+      initAesKey();
+      return;
     }
 
-    // Run initialization if:
-    // 1. Identity changed (which means we need to initialize for the new identity)
-    // 2. OR we've never run initialization before
-    // 3. AND we're not already initialized
+    // Run initialization if we've never run it before
     if (
-      ((identity && identityChanged) ||
-        lastIdentityRef.current === undefined) &&
+      lastIdentityRef.current === undefined &&
       !initializationCompleted.current
     ) {
-      console.log(
-        'Identity changed or first initialization, running initAesKey',
-      );
+      console.log('First initialization, running initAesKey');
       initAesKey();
     }
   }, [isReady, identity, initAesKey]);
+
+  // Handle navigation after AES key initialization
+  useEffect(() => {
+    // Only attempt navigation when:
+    // 1. The app is ready
+    // 2. AES key initialization is completed
+    // 3. We're not in a loading state
+    // 4. We have an AES key
+    if (isReady && initializationCompleted.current && !isLoading && hasAesKey) {
+      (async () => {
+        try {
+          const lastPath = await AsyncStorage.getItem('lastPath');
+          if (lastPath) {
+            console.log('Attempting to navigate to saved path:', lastPath);
+
+            // Remove the path from storage before navigation to prevent loops
+            await AsyncStorage.removeItem('lastPath');
+            console.log('Removed path from storage before navigation');
+
+            // Add a small delay to ensure the component is fully mounted
+            setTimeout(async () => {
+              try {
+                navigate(lastPath);
+                console.log(
+                  'Navigation completed after AES key initialization',
+                );
+              } catch (navError) {
+                console.error('Navigation error:', navError);
+              }
+            }, 300);
+          }
+        } catch (error) {
+          console.error('Error during navigation after login/logout:', error);
+        }
+      })();
+    }
+  }, [
+    isReady,
+    identity, // Keep identity as a dependency to react to changes
+    isLoading,
+    hasAesKey,
+    // We can't directly depend on initializationCompleted.current, but we know it changes
+    // when identity changes or when initAesKey completes
+  ]);
 
   // Handle retry
   const handleRetry = () => {
@@ -295,7 +349,7 @@ function RootLayoutNav() {
     logout()
       .then(() => {
         console.log('Logout successful');
-        // Reset state after successful logout
+        // Reset state after successful logout but keep navigation state
         setError(undefined);
         initializationCompleted.current = false;
         lastIdentityRef.current = undefined;

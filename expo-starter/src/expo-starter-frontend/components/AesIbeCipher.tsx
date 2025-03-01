@@ -12,9 +12,14 @@ import {
   Platform,
 } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { LogIn } from './LogIn';
+
+// Utility function to yield to the UI thread
+const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 export const AesIbeCipher = () => {
-  const { aesEncrypt, aesDecrypt, hasAesKey, identity } = useAuthContext();
+  const { aesEncrypt, aesDecrypt, hasAesKey, identity, login } =
+    useAuthContext();
 
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
@@ -64,6 +69,20 @@ export const AesIbeCipher = () => {
       setBusy(false);
     }
   };
+
+  // Show login message when not logged in
+  if (!identity) {
+    return (
+      <View style={[styles.container, { maxWidth: Math.min(800, width - 32) }]}>
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>
+            You should log in to use encryption features
+          </Text>
+          <LogIn onLogin={login} />
+        </View>
+      </View>
+    );
+  }
 
   // Show loading indicator when AES key is not ready
   if (!hasAesKey) {
@@ -159,6 +178,18 @@ const styles = StyleSheet.create({
     elevation: 2,
     alignSelf: 'center',
     width: '100%',
+  },
+  loginContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  loginText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   statusContainer: {
     marginBottom: 8,
