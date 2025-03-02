@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toHex } from '@dfinity/agent';
 import {
   Ed25519KeyIdentity,
@@ -17,7 +17,6 @@ import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AuthClient } from '@dfinity/auth-client';
 import { Platform } from 'react-native';
 import { AesOperations } from '@/icp/AesOperations';
-import { restorePreLoginScreen } from '@/utils/navigationUtils';
 
 // Create a single instance of AesOperations to be used across the app
 const aesOperations = new AesOperations();
@@ -35,6 +34,11 @@ export function useAuth() {
   const [authClient, setAuthClient] = useState<AuthClient | undefined>(
     undefined,
   );
+  // Add a ref to track if we're in the logout process
+  const isLoggingOutRef = useRef(false);
+
+  // Add a function to check if we're logging out
+  const isLoggingOut = () => isLoggingOutRef.current;
 
   // Log pathname changes
   useEffect(() => {
@@ -123,14 +127,9 @@ export function useAuth() {
           const id = DelegationIdentity.fromDelegation(baseKey, chain);
           setIdentity(id);
           console.log('set identity from delegation');
-          WebBrowser.dismissBrowser();
 
-          // Don't immediately restore the pre-login screen
-          // Instead, let the AES key initialization complete first
-          // The navigation will happen naturally as the app renders with the new identity
-          console.log(
-            'Identity set, AES key initialization will happen automatically',
-          );
+          WebBrowser.dismissBrowser();
+          console.log('Browser dismissed after login');
         } catch (error) {
           console.error('Error in delegation processing:', error);
         }
@@ -139,10 +138,6 @@ export function useAuth() {
   }, [url, baseKey, identity]);
 
   const login = async () => {
-    // Save the current path before login
-    console.log('Saving path before login:', pathname);
-    await AsyncStorage.setItem('lastPath', pathname);
-
     if (Platform.OS === 'web') {
       if (!authClient) {
         throw new Error('Auth client not initialized');
@@ -184,6 +179,10 @@ export function useAuth() {
 
   const logout = async () => {
     try {
+      // Set the logging out flag
+      isLoggingOutRef.current = true;
+      console.log('Setting isLoggingOut flag to true');
+
       // Save the current path before logout
       console.log('Saving path before logout:', pathname);
       await AsyncStorage.setItem('lastPath', pathname);
@@ -202,6 +201,9 @@ export function useAuth() {
       await AsyncStorage.removeItem('delegation');
       setIdentity(undefined);
       console.log('identity set to undefined after logout for native');
+
+      // The navigation effect in _layout.tsx will handle returning to the saved path
+      // after the AES key is initialized for the anonymous user
     } catch (error) {
       console.error('Error during logout:', error);
       throw error;
@@ -214,6 +216,8 @@ export function useAuth() {
     isAuthenticated: !!identity,
     login,
     logout,
+    isLoggingOut,
+    isLoggingOutRef,
     decryptExistingAesKey:
       aesOperations.decryptExistingAesKey.bind(aesOperations),
     generateAesKey: aesOperations.generateAesKey.bind(aesOperations),

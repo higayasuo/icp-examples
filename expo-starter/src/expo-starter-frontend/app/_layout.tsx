@@ -16,9 +16,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBackend } from '@/icp/backend';
-import { restorePreLoginScreen, navigate } from '@/utils/navigationUtils';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -72,6 +70,8 @@ function RootLayoutNav() {
     clearAesRawKey,
     transportPublicKey,
     hasAesKey,
+    isLoggingOut,
+    isLoggingOutRef,
   } = auth;
   const [initializationStatus, setInitializationStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -98,6 +98,26 @@ function RootLayoutNav() {
 
       if (!identity) {
         console.log('No identity found, generating new AES key');
+
+        // Fast path for logout: if we're logging out, use a simplified approach
+        if (isLoggingOut()) {
+          console.log(
+            'Detected logout in progress, using fast path for AES key generation',
+          );
+          await generateAesKey();
+          initializationCompleted.current = true;
+
+          // Reset the logging out flag after a short delay to ensure navigation completes
+          setTimeout(() => {
+            console.log('Resetting isLoggingOut flag after logout completed');
+            // Access the isLoggingOutRef directly
+            isLoggingOutRef.current = false;
+          }, 500);
+
+          return;
+        }
+
+        // Normal path for non-logout scenarios
         await generateAesKey();
         initializationCompleted.current = true;
         return;
@@ -177,15 +197,6 @@ function RootLayoutNav() {
           performance.now() - totalStartTime
         }ms`,
       );
-
-      // Instead of immediately navigating, just mark that navigation should happen
-      // The actual navigation will be handled in a separate effect that runs after mounting
-      const lastPath = await AsyncStorage.getItem('lastPath');
-      if (lastPath) {
-        console.log('Found saved path after AES key initialization:', lastPath);
-        // Don't navigate here - just leave the path in AsyncStorage
-        // It will be handled by a separate effect
-      }
     } catch (err) {
       console.error('Failed to initialize AES key:', err);
       setInitializationStatus(`Failed to initialize AES key: ${err}`);
@@ -202,11 +213,18 @@ function RootLayoutNav() {
     transportPublicKey,
     decryptExistingAesKey,
     generateAndEncryptAesKey,
+    auth,
   ]);
 
   // Initialize on first load and when identity changes
   useEffect(() => {
     if (!isReady) return;
+
+    // Skip initialization if we're in the process of logging out
+    if (isLoggingOut()) {
+      console.log('Skipping AES key initialization during logout');
+      return;
+    }
 
     const currentIdentity = identity
       ? identity.getPrincipal().toText()
@@ -232,51 +250,7 @@ function RootLayoutNav() {
       console.log('First initialization, running initAesKey');
       initAesKey();
     }
-  }, [isReady, identity, initAesKey]);
-
-  // Handle navigation after AES key initialization
-  useEffect(() => {
-    // Only attempt navigation when:
-    // 1. The app is ready
-    // 2. AES key initialization is completed
-    // 3. We're not in a loading state
-    // 4. We have an AES key
-    if (isReady && initializationCompleted.current && !isLoading && hasAesKey) {
-      (async () => {
-        try {
-          const lastPath = await AsyncStorage.getItem('lastPath');
-          if (lastPath) {
-            console.log('Attempting to navigate to saved path:', lastPath);
-
-            // Remove the path from storage before navigation to prevent loops
-            await AsyncStorage.removeItem('lastPath');
-            console.log('Removed path from storage before navigation');
-
-            // Add a small delay to ensure the component is fully mounted
-            setTimeout(async () => {
-              try {
-                navigate(lastPath);
-                console.log(
-                  'Navigation completed after AES key initialization',
-                );
-              } catch (navError) {
-                console.error('Navigation error:', navError);
-              }
-            }, 300);
-          }
-        } catch (error) {
-          console.error('Error during navigation after login/logout:', error);
-        }
-      })();
-    }
-  }, [
-    isReady,
-    identity, // Keep identity as a dependency to react to changes
-    isLoading,
-    hasAesKey,
-    // We can't directly depend on initializationCompleted.current, but we know it changes
-    // when identity changes or when initAesKey completes
-  ]);
+  }, [isReady, identity, initAesKey, isLoggingOut]);
 
   // Handle retry
   const handleRetry = () => {
@@ -358,7 +332,8 @@ function RootLayoutNav() {
         // After logout, we need to ensure we have an AES key for anonymous operations
         if (!auth.hasAesKey) {
           console.log('No AES key after logout, initializing anonymous key');
-          // This will trigger initAesKey in the identity change effect
+          // Directly call initAesKey to ensure it runs immediately
+          initAesKey();
         }
       })
       .catch((err) => {

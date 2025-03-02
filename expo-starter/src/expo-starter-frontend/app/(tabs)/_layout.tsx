@@ -1,6 +1,6 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
 import { LogIn } from '@/components/LogIn';
 import { LogOut } from '@/components/LogOut';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,8 +16,10 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const router = useRouter();
   const { identity, login, logout } = useAuthContext();
+  const pathname = usePathname();
+
+  const routeName = pathname === '/' ? 'index' : pathname.slice(1);
 
   return (
     <Tabs
@@ -26,6 +28,7 @@ export default function TabLayout() {
         headerRight: () =>
           identity ? <LogOut onLogout={logout} /> : <LogIn onLogin={login} />,
       }}
+      initialRouteName={routeName}
     >
       <Tabs.Screen
         name="index"
