@@ -12,11 +12,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { getCanisterURL } from '@/icp/getCanisterURL';
 import { ENV_VARS } from '@/icp/env.generated';
-import { usePathname } from 'expo-router';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AuthClient } from '@dfinity/auth-client';
 import { Platform } from 'react-native';
 import { AesOperations } from '@/icp/AesOperations';
+import { useLastPath } from './useLastPath';
 
 // Create a single instance of AesOperations to be used across the app
 const aesOperations = new AesOperations();
@@ -27,23 +27,14 @@ export function useAuth() {
   );
   const [isReady, setIsReady] = useState(false);
   const url = useURL();
-  const pathname = usePathname();
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
     undefined,
   );
   const [authClient, setAuthClient] = useState<AuthClient | undefined>(
     undefined,
   );
-  // Add a ref to track if we're in the logout process
-  const isLoggingOutRef = useRef(false);
-
-  // Add a function to check if we're logging out
-  const isLoggingOut = () => isLoggingOutRef.current;
-
-  // Log pathname changes
-  useEffect(() => {
-    console.log('Current pathname in useAuth:', pathname);
-  }, [pathname]);
+  // Use our new path management hook
+  const { saveCurrentPath, lastPath, clearLastPath } = useLastPath();
 
   // Initialize auth state
   useEffect(() => {
@@ -126,18 +117,21 @@ export function useAuth() {
           );
           const id = DelegationIdentity.fromDelegation(baseKey, chain);
           setIdentity(id);
-          console.log('set identity from delegation');
+          console.log('identity set from delegation');
 
           WebBrowser.dismissBrowser();
-          console.log('Browser dismissed after login');
         } catch (error) {
           console.error('Error in delegation processing:', error);
         }
       })();
     }
-  }, [url, baseKey, identity]);
+  }, [url]);
 
   const login = async () => {
+    console.log('Logging in');
+    // Save the current path before login
+    saveCurrentPath();
+
     if (Platform.OS === 'web') {
       if (!authClient) {
         throw new Error('Auth client not initialized');
@@ -178,14 +172,9 @@ export function useAuth() {
   };
 
   const logout = async () => {
+    console.log('Logging out');
     try {
-      // Set the logging out flag
-      isLoggingOutRef.current = true;
-      console.log('Setting isLoggingOut flag to true');
-
-      // Save the current path before logout
-      console.log('Saving path before logout:', pathname);
-      await AsyncStorage.setItem('lastPath', pathname);
+      saveCurrentPath();
 
       if (Platform.OS === 'web') {
         if (!authClient) {
@@ -201,9 +190,6 @@ export function useAuth() {
       await AsyncStorage.removeItem('delegation');
       setIdentity(undefined);
       console.log('identity set to undefined after logout for native');
-
-      // The navigation effect in _layout.tsx will handle returning to the saved path
-      // after the AES key is initialized for the anonymous user
     } catch (error) {
       console.error('Error during logout:', error);
       throw error;
@@ -216,8 +202,6 @@ export function useAuth() {
     isAuthenticated: !!identity,
     login,
     logout,
-    isLoggingOut,
-    isLoggingOutRef,
     decryptExistingAesKey:
       aesOperations.decryptExistingAesKey.bind(aesOperations),
     generateAesKey: aesOperations.generateAesKey.bind(aesOperations),
@@ -228,5 +212,8 @@ export function useAuth() {
     hasAesKey: aesOperations.hasAesKey,
     clearAesRawKey: aesOperations.clearAesRawKey.bind(aesOperations),
     transportPublicKey: aesOperations.transportPublicKey,
+    lastPath,
+    saveCurrentPath,
+    clearLastPath,
   };
 }

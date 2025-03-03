@@ -69,9 +69,6 @@ function RootLayoutNav() {
     generateAndEncryptAesKey,
     clearAesRawKey,
     transportPublicKey,
-    hasAesKey,
-    isLoggingOut,
-    isLoggingOutRef,
   } = auth;
   const [initializationStatus, setInitializationStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -98,24 +95,6 @@ function RootLayoutNav() {
 
       if (!identity) {
         console.log('No identity found, generating new AES key');
-
-        // Fast path for logout: if we're logging out, use a simplified approach
-        if (isLoggingOut()) {
-          console.log(
-            'Detected logout in progress, using fast path for AES key generation',
-          );
-          await generateAesKey();
-          initializationCompleted.current = true;
-
-          // Reset the logging out flag after a short delay to ensure navigation completes
-          setTimeout(() => {
-            console.log('Resetting isLoggingOut flag after logout completed');
-            // Access the isLoggingOutRef directly
-            isLoggingOutRef.current = false;
-          }, 500);
-
-          return;
-        }
 
         // Normal path for non-logout scenarios
         await generateAesKey();
@@ -213,18 +192,11 @@ function RootLayoutNav() {
     transportPublicKey,
     decryptExistingAesKey,
     generateAndEncryptAesKey,
-    auth,
   ]);
 
   // Initialize on first load and when identity changes
   useEffect(() => {
     if (!isReady) return;
-
-    // Skip initialization if we're in the process of logging out
-    if (isLoggingOut()) {
-      console.log('Skipping AES key initialization during logout');
-      return;
-    }
 
     const currentIdentity = identity
       ? identity.getPrincipal().toText()
@@ -242,15 +214,15 @@ function RootLayoutNav() {
       return;
     }
 
-    // Run initialization if we've never run it before
-    if (
-      lastIdentityRef.current === undefined &&
-      !initializationCompleted.current
-    ) {
-      console.log('First initialization, running initAesKey');
-      initAesKey();
-    }
-  }, [isReady, identity, initAesKey, isLoggingOut]);
+    // // Run initialization if we've never run it before
+    // if (
+    //   lastIdentityRef.current === undefined &&
+    //   !initializationCompleted.current
+    // ) {
+    //   console.log('First initialization, running initAesKey');
+    //   initAesKey();
+    // }
+  }, [isReady, identity, initAesKey]);
 
   // Handle retry
   const handleRetry = () => {
@@ -314,33 +286,22 @@ function RootLayoutNav() {
   // Separate the actual logout logic for clarity
   const performLogout = () => {
     console.log('Performing logout...');
-
-    // Use a simpler approach with fewer async operations
     setIsLoading(true);
     setInitializationStatus('Logging out...');
 
-    // Then call logout and handle the promise
+    // Call logout and handle the promise
     logout()
       .then(() => {
         console.log('Logout successful');
-        // Reset state after successful logout but keep navigation state
         setError(undefined);
         initializationCompleted.current = false;
         lastIdentityRef.current = undefined;
         setInitializationStatus('Logged out successfully');
-
-        // After logout, we need to ensure we have an AES key for anonymous operations
-        if (!auth.hasAesKey) {
-          console.log('No AES key after logout, initializing anonymous key');
-          // Directly call initAesKey to ensure it runs immediately
-          initAesKey();
-        }
+        setIsLoading(false);
       })
       .catch((err) => {
         console.error('Error during logout process:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
-      })
-      .finally(() => {
         setIsLoading(false);
       });
   };
@@ -452,8 +413,12 @@ function RootLayoutNav() {
           },
         }}
       >
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
         </Stack>
       </ThemeProvider>
     </AuthProvider>

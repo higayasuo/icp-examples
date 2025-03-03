@@ -24,6 +24,9 @@ interface AuthContextType {
     publicKey: Uint8Array,
     principal: Principal,
   ) => Promise<Uint8Array>;
+  lastPath: string | undefined;
+  saveCurrentPath: () => void;
+  clearLastPath: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

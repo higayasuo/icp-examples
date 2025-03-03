@@ -5,17 +5,14 @@ import {
   TextInput,
   StyleSheet,
   useWindowDimensions,
-  ActivityIndicator,
   Pressable,
   Keyboard,
   TouchableWithoutFeedback,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { LogIn } from './LogIn';
-
-// Utility function to yield to the UI thread
-const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 export const AesIbeCipher = () => {
   const { aesEncrypt, aesDecrypt, hasAesKey, identity, login } =
@@ -25,7 +22,6 @@ export const AesIbeCipher = () => {
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<string>('Status will appear here');
   const { width } = useWindowDimensions();
 
   useEffect(() => {
@@ -46,25 +42,16 @@ export const AesIbeCipher = () => {
 
     setBusy(true);
     setError(undefined);
-    setStatus('Starting encryption...'); // Allow UI to update
 
     try {
       const plaintextBytes = new TextEncoder().encode(inputText);
-
-      setStatus('Encrypting...');
-
       const ciphertext = await aesEncrypt({ plaintext: plaintextBytes });
-
-      setStatus('Decrypting...');
-
       const decrypted = await aesDecrypt({ ciphertext });
 
       setResult(new TextDecoder().decode(decrypted));
-      setStatus('Encryption and decryption completed');
     } catch (err) {
       console.error('Error during encryption/decryption:', err);
       setError(`Error: ${err instanceof Error ? err.message : String(err)}`);
-      setStatus('Failed to complete operation');
     } finally {
       setBusy(false);
     }
@@ -84,32 +71,11 @@ export const AesIbeCipher = () => {
     );
   }
 
-  // Show loading indicator when AES key is not ready
-  if (!hasAesKey) {
-    return (
-      <View style={[styles.container, { maxWidth: Math.min(800, width - 32) }]}>
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusText}>{status}</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={styles.loadingText}>Preparing AES Key</Text>
-          <Text style={styles.loadingSubText}>
-            Initial encryption process may take some time
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   const isButtonDisabled = !inputText.trim() || busy;
 
   // Create the main content
   const content = (
     <View style={styles.container}>
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>{status}</Text>
-      </View>
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Input Text:</Text>
         <TextInput
@@ -118,7 +84,8 @@ export const AesIbeCipher = () => {
           onChangeText={setInputText}
           placeholder="Enter text to encrypt"
           multiline
-          blurOnSubmit={true}
+          returnKeyType="done"
+          onSubmitEditing={() => Keyboard.dismiss()}
         />
       </View>
       <View style={styles.buttonContainer}>
