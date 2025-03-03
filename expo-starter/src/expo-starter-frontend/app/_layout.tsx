@@ -1,5 +1,4 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,8 +14,9 @@ import {
   Pressable,
   Alert,
   Platform,
+  ScrollView,
 } from 'react-native';
-import { createBackend } from '@/icp/backend';
+import { initAesKeyInternal } from '@/icp/initAesKeyInternal';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -60,21 +60,9 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const auth = useAuth();
-  const {
-    isReady,
-    identity,
-    logout,
-    decryptExistingAesKey,
-    generateAesKey,
-    generateAndEncryptAesKey,
-    clearAesRawKey,
-    transportPublicKey,
-  } = auth;
-  const [initializationStatus, setInitializationStatus] = useState('');
+  const { isReady, identity, logout } = auth;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
-  const initializationCompleted = useRef(false);
-  const lastIdentityRef = useRef<string | undefined>(undefined);
 
   // Initialize AES key function
   const initAesKey = useCallback(async () => {
@@ -84,174 +72,35 @@ function RootLayoutNav() {
     }
 
     try {
-      const totalStartTime = performance.now();
       setError(undefined);
       setIsLoading(true);
 
-      // Store current identity principal for tracking changes
-      lastIdentityRef.current = identity
-        ? identity.getPrincipal().toText()
-        : undefined;
-
-      if (!identity) {
-        console.log('No identity found, generating new AES key');
-
-        // Normal path for non-logout scenarios
-        await generateAesKey();
-        initializationCompleted.current = true;
-        return;
-      }
-
-      clearAesRawKey();
-      setInitializationStatus('Fetching keys from backend...');
-
-      const backend = createBackend(identity);
-
-      const backendCallStartTime = performance.now();
-      setInitializationStatus('Calling backend for keys...');
-
-      const keysReply = await backend.asymmetric_keys(transportPublicKey);
-      console.log(
-        `Backend asymmetric_keys call took: ${
-          performance.now() - backendCallStartTime
-        }ms`,
-      );
-
-      const publicKey = keysReply.public_key as Uint8Array;
-      const encryptedAesKey = keysReply.encrypted_aes_key?.[0] as
-        | Uint8Array
-        | undefined;
-      const encryptedKey = keysReply.encrypted_key?.[0] as
-        | Uint8Array
-        | undefined;
-      const principal = identity.getPrincipal();
-
-      if (encryptedAesKey && encryptedKey) {
-        console.log('Decrypting existing AES key');
-        setInitializationStatus('Decrypting existing AES key...');
-
-        const decryptStartTime = performance.now();
-        await decryptExistingAesKey(
-          encryptedAesKey,
-          encryptedKey,
-          publicKey,
-          principal,
-        );
-        console.log(
-          `Decrypting existing AES key took: ${
-            performance.now() - decryptStartTime
-          }ms`,
-        );
-      } else {
-        console.log('Generating and encrypting new AES key');
-        setInitializationStatus('Generating and encrypting new AES key...');
-
-        const generateStartTime = performance.now();
-        const newEncryptedAesKey = await generateAndEncryptAesKey(
-          publicKey,
-          principal,
-        );
-        console.log(
-          `Generating and encrypting new AES key took: ${
-            performance.now() - generateStartTime
-          }ms`,
-        );
-
-        console.log('Saving new encrypted AES key');
-        setInitializationStatus('Saving encrypted AES key...');
-
-        const saveStartTime = performance.now();
-        await backend.asymmetric_save_encrypted_aes_key(newEncryptedAesKey);
-        console.log(
-          `Saving encrypted AES key took: ${
-            performance.now() - saveStartTime
-          }ms`,
-        );
-      }
-
-      setInitializationStatus('AES key initialization completed');
-      initializationCompleted.current = true;
-      console.log(
-        `Total initialization process took: ${
-          performance.now() - totalStartTime
-        }ms`,
-      );
+      await initAesKeyInternal(auth);
     } catch (err) {
       console.error('Failed to initialize AES key:', err);
-      setInitializationStatus(`Failed to initialize AES key: ${err}`);
       setError(err instanceof Error ? err : new Error(String(err)));
-      // We don't reset initializationCompleted here, as we'll use the retry button instead
     } finally {
       setIsLoading(false);
     }
-  }, [
-    identity,
-    isLoading,
-    generateAesKey,
-    clearAesRawKey,
-    transportPublicKey,
-    decryptExistingAesKey,
-    generateAndEncryptAesKey,
-  ]);
+  }, [identity, isLoading]);
 
   // Initialize on first load and when identity changes
   useEffect(() => {
-    if (!isReady) return;
-
-    const currentIdentity = identity
-      ? identity.getPrincipal().toText()
-      : undefined;
-    const identityChanged = currentIdentity !== lastIdentityRef.current;
-
-    // Reset initialization flag when identity changes
-    if (identityChanged) {
-      console.log('Identity changed, resetting initialization flag');
-      initializationCompleted.current = false;
-
-      // Immediately run initAesKey when identity changes
-      console.log('Identity changed, immediately running initAesKey');
-      initAesKey();
+    if (!isReady) {
       return;
     }
 
-    // // Run initialization if we've never run it before
-    // if (
-    //   lastIdentityRef.current === undefined &&
-    //   !initializationCompleted.current
-    // ) {
-    //   console.log('First initialization, running initAesKey');
-    //   initAesKey();
-    // }
-  }, [isReady, identity, initAesKey]);
+    initAesKey();
+  }, [isReady, identity]);
 
   // Handle retry
   const handleRetry = () => {
     initAesKey();
   };
 
-  // Handle continue with local key
-  const handleContinueWithLocalKey = async () => {
-    setError(undefined);
-    setInitializationStatus('Generating local AES key...');
-    setIsLoading(true);
-
-    try {
-      await generateAesKey();
-      setInitializationStatus('Local AES key generated');
-      initializationCompleted.current = true;
-    } catch (err) {
-      console.error('Failed to generate local AES key:', err);
-      setInitializationStatus(`Failed to generate local AES key: ${err}`);
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Handle close error screen
   const handleClose = () => {
     setError(undefined);
-    initializationCompleted.current = true;
   };
 
   // Handle logout with confirmation
@@ -284,26 +133,16 @@ function RootLayoutNav() {
   };
 
   // Separate the actual logout logic for clarity
-  const performLogout = () => {
+  const performLogout = async () => {
     console.log('Performing logout...');
-    setIsLoading(true);
-    setInitializationStatus('Logging out...');
-
-    // Call logout and handle the promise
-    logout()
-      .then(() => {
-        console.log('Logout successful');
-        setError(undefined);
-        initializationCompleted.current = false;
-        lastIdentityRef.current = undefined;
-        setInitializationStatus('Logged out successfully');
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error during logout process:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setIsLoading(false);
-      });
+    try {
+      await logout();
+      console.log('Logout successful');
+      setError(undefined);
+    } catch (err) {
+      console.error('Error during logout process:', err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+    }
   };
 
   if (!isReady) {
@@ -323,8 +162,8 @@ function RootLayoutNav() {
             color="#007AFF"
             style={styles.indicator}
           />
-          <Text style={styles.loadingText}>Preparing Encryption</Text>
-          <Text style={styles.statusText}>{initializationStatus}</Text>
+          <Text style={styles.loadingText}>Preparing Encryption...</Text>
+
           <Text style={styles.hintText}>This may take a moment...</Text>
         </View>
       </View>
@@ -334,93 +173,50 @@ function RootLayoutNav() {
   if (error) {
     return (
       <View style={styles.loadingContainer}>
-        <View style={styles.contentContainer}>
-          <Text style={styles.errorTitle}>Initialization Error</Text>
-          <Text style={styles.errorText}>{error.message}</Text>
-          <Text style={styles.statusText}>{initializationStatus}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContentContainer}
+          showsVerticalScrollIndicator={true}
+        >
+          <View style={styles.contentContainer}>
+            <Text style={styles.errorTitle}>Initialization Error</Text>
+            <Text style={styles.errorText}>{error.message}</Text>
 
-          <View style={styles.buttonContainer}>
-            <Pressable style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.buttonText}>Retry</Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Pressable style={styles.retryButton} onPress={handleRetry}>
+                <Text style={styles.buttonText}>Retry</Text>
+              </Pressable>
 
-            {identity ? (
               <Pressable style={styles.closeButton} onPress={handleClose}>
                 <Text style={styles.buttonText}>Close</Text>
               </Pressable>
-            ) : (
-              <Pressable
-                style={styles.localKeyButton}
-                onPress={handleContinueWithLocalKey}
-              >
-                <Text style={styles.buttonText}>Continue with Local Key</Text>
-              </Pressable>
-            )}
 
-            {identity && (
-              <Pressable
-                style={styles.logoutButton}
-                onPress={handleLogout}
-                accessibilityRole="button"
-                accessibilityLabel="Logout"
-                accessibilityHint="Logs you out of the application"
-              >
-                <Text style={styles.buttonText}>Logout</Text>
-              </Pressable>
-            )}
+              {identity && (
+                <Pressable
+                  style={styles.logoutButton}
+                  onPress={handleLogout}
+                  accessibilityRole="button"
+                  accessibilityLabel="Logout"
+                  accessibilityHint="Logs you out of the application"
+                >
+                  <Text style={styles.buttonText}>Logout</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-
-          <Text style={styles.hintText}>
-            {identity
-              ? 'You can retry connecting to the backend or close this message to continue with limited functionality. If problems persist, logging out will reset your state.'
-              : "You can retry connecting to the backend or continue with a local encryption key. A local key will work for this session but won't be synchronized with your account."}
-          </Text>
-        </View>
+        </ScrollView>
       </View>
     );
   }
 
   return (
     <AuthProvider value={auth}>
-      <ThemeProvider
-        value={{
-          dark: false,
-          colors: {
-            primary: '#007AFF',
-            background: '#fff',
-            card: '#fff',
-            text: '#000',
-            border: '#ccc',
-            notification: '#ff3b30',
-          },
-          fonts: {
-            regular: {
-              fontFamily: 'System',
-              fontWeight: '400',
-            },
-            medium: {
-              fontFamily: 'System',
-              fontWeight: '500',
-            },
-            bold: {
-              fontFamily: 'System',
-              fontWeight: '700',
-            },
-            heavy: {
-              fontFamily: 'System',
-              fontWeight: '900',
-            },
-          },
+      <Stack
+        screenOptions={{
+          headerShown: false,
         }}
       >
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-      </ThemeProvider>
+        <Stack.Screen name="(tabs)" />
+      </Stack>
     </AuthProvider>
   );
 }
@@ -433,11 +229,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 20,
   },
+  scrollContentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    width: '100%',
+  },
   contentContainer: {
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
     marginTop: -80,
+    paddingBottom: 20,
   },
   indicator: {
     marginBottom: 24,
@@ -447,18 +249,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  statusText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
   hintText: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 16,
+    color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 16,
   },
   errorTitle: {
     fontSize: 20,
