@@ -2,26 +2,22 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ErrorProvider } from '@/contexts/ErrorContext';
 import {
   View,
   ActivityIndicator,
   Text,
   StyleSheet,
   Pressable,
-  Alert,
-  Platform,
   ScrollView,
 } from 'react-native';
-import { initAesKeyInternal } from '@/icp/initAesKeyInternal';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+import { useError } from '@/contexts/ErrorContext';
+import { initAesKeyInternal } from '@/icp/initAesKeyInternal';
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -55,14 +51,19 @@ export default function RootLayout() {
     );
   }
 
-  return <RootLayoutNav />;
+  return (
+    <ErrorProvider>
+      <RootLayoutNav />
+    </ErrorProvider>
+  );
 }
 
 function RootLayoutNav() {
   const auth = useAuth();
-  const { isReady, identity, logout } = auth;
+  const { isReady, identity, authError } = auth;
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | undefined>(undefined);
+  const [error, setError] = useState<unknown | undefined>(undefined);
+  const { showError } = useError();
 
   // Initialize AES key function
   const initAesKey = useCallback(async () => {
@@ -78,7 +79,7 @@ function RootLayoutNav() {
       await initAesKeyInternal(auth);
     } catch (err) {
       console.error('Failed to initialize AES key:', err);
-      setError(err instanceof Error ? err : new Error(String(err)));
+      setError(err);
     } finally {
       setIsLoading(false);
     }
@@ -93,56 +94,23 @@ function RootLayoutNav() {
     initAesKey();
   }, [isReady, identity]);
 
-  // Handle retry
-  const handleRetry = () => {
-    initAesKey();
-  };
+  // Handle error display
+  useEffect(() => {
+    if (error) {
+      showError(error);
+    }
+  }, [error, showError]);
+
+  // Handle auth error display
+  useEffect(() => {
+    if (authError) {
+      showError(authError);
+    }
+  }, [authError, showError]);
 
   // Handle close error screen
   const handleClose = () => {
     setError(undefined);
-  };
-
-  // Handle logout with confirmation
-  const handleLogout = () => {
-    // Use a more direct approach for the alert
-    if (Platform.OS === 'web') {
-      // For web, we can't use Alert, so just proceed with logout
-      console.log('Web platform detected, proceeding with logout directly');
-      performLogout();
-    } else {
-      // For native platforms, show the confirmation dialog
-      Alert.alert(
-        'Confirm Logout',
-        'Logging out will reset your state. Continue?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => console.log('Logout cancelled'),
-          },
-          {
-            text: 'Logout',
-            style: 'destructive',
-            onPress: performLogout,
-          },
-        ],
-        { cancelable: true },
-      );
-    }
-  };
-
-  // Separate the actual logout logic for clarity
-  const performLogout = async () => {
-    console.log('Performing logout...');
-    try {
-      await logout();
-      console.log('Logout successful');
-      setError(undefined);
-    } catch (err) {
-      console.error('Error during logout process:', err);
-      setError(err instanceof Error ? err : new Error(String(err)));
-    }
   };
 
   if (!isReady) {
@@ -166,44 +134,6 @@ function RootLayoutNav() {
 
           <Text style={styles.hintText}>This may take a moment...</Text>
         </View>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContentContainer}
-          showsVerticalScrollIndicator={true}
-        >
-          <View style={styles.contentContainer}>
-            <Text style={styles.errorTitle}>Initialization Error</Text>
-            <Text style={styles.errorText}>{error.message}</Text>
-
-            <View style={styles.buttonContainer}>
-              <Pressable style={styles.retryButton} onPress={handleRetry}>
-                <Text style={styles.buttonText}>Retry</Text>
-              </Pressable>
-
-              <Pressable style={styles.closeButton} onPress={handleClose}>
-                <Text style={styles.buttonText}>Close</Text>
-              </Pressable>
-
-              {identity && (
-                <Pressable
-                  style={styles.logoutButton}
-                  onPress={handleLogout}
-                  accessibilityRole="button"
-                  accessibilityLabel="Logout"
-                  accessibilityHint="Logs you out of the application"
-                >
-                  <Text style={styles.buttonText}>Logout</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-        </ScrollView>
       </View>
     );
   }
@@ -254,6 +184,25 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  errorBoundaryContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  errorContentContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 400,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorMessageContainer: {
+    alignItems: 'center',
+    width: '100%',
+    padding: 20,
   },
   errorTitle: {
     fontSize: 20,

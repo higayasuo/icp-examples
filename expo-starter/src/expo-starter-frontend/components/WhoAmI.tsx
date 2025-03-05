@@ -6,7 +6,6 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
-import { ActorSubclass, Identity, Actor } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import {
   baseTextStyles,
@@ -16,7 +15,7 @@ import {
 } from './styles';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { createBackend } from '@/icp/backend';
-
+import { useError } from '@/contexts/ErrorContext';
 /**
  * Component that displays the whoami functionality
  */
@@ -26,6 +25,7 @@ export const WhoAmI = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const { width } = useWindowDimensions();
+  const { showError } = useError();
 
   useEffect(() => {
     setWho(undefined);
@@ -37,7 +37,11 @@ export const WhoAmI = () => {
     if (!backend) {
       throw new Error('backend is not ready');
     }
-    return backend.whoami();
+    try {
+      return await backend.whoami();
+    } catch (error) {
+      showError(error);
+    }
   };
 
   return (

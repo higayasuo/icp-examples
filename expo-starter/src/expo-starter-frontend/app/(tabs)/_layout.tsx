@@ -4,7 +4,6 @@ import { Tabs, usePathname } from 'expo-router';
 import { LogIn } from '@/components/LogIn';
 import { LogOut } from '@/components/LogOut';
 import { useAuthContext } from '@/contexts/AuthContext';
-
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
  */
@@ -28,6 +27,9 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#007AFF',
         headerRight: () =>
           identity ? <LogOut onLogout={logout} /> : <LogIn onLogin={login} />,
+        headerStyle: {
+          height: 110,
+        },
       }}
       initialRouteName={routeName}
     >

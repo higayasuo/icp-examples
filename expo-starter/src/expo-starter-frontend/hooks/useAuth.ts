@@ -1,23 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { toHex } from '@dfinity/agent';
-import {
-  Ed25519KeyIdentity,
-  DelegationChain,
-  DelegationIdentity,
-  isDelegationValid,
-} from '@dfinity/identity';
+import { Ed25519KeyIdentity, DelegationIdentity } from '@dfinity/identity';
 import * as WebBrowser from 'expo-web-browser';
 import { useURL, createURL } from 'expo-linking';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+
 import { getCanisterURL } from '@/icp/getCanisterURL';
 import { ENV_VARS } from '@/icp/env.generated';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
-import { AuthClient } from '@dfinity/auth-client';
-import { Platform } from 'react-native';
 import { AesOperations } from '@/icp/AesOperations';
 import { useLastPath } from './useLastPath';
-
+import { getStorage } from '@/storage/platformStorage';
+import { setupAppKey, retrieveAppKey } from '@/icp/appKeyUtils';
+import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
+import { identityFromDelegation } from '@/icp/identityUtils';
 // Create a single instance of AesOperations to be used across the app
 const aesOperations = new AesOperations();
 
@@ -27,12 +22,11 @@ export function useAuth() {
   );
   const [isReady, setIsReady] = useState(false);
   const url = useURL();
+  console.log('url', url);
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
     undefined,
   );
-  const [authClient, setAuthClient] = useState<AuthClient | undefined>(
-    undefined,
-  );
+  const [authError, setAuthError] = useState<unknown | undefined>(undefined);
   // Use our new path management hook
   const { saveCurrentPath, lastPath, clearLastPath } = useLastPath();
 
@@ -43,61 +37,51 @@ export function useAuth() {
       return;
     }
 
+    if (identity) {
+      console.log('skipping first useEffect because identity is already set');
+      return;
+    }
+
     (async () => {
-      if (Platform.OS === 'web') {
-        const authClient = await AuthClient.create();
-        setAuthClient(authClient);
-        const authenticated = await authClient.isAuthenticated();
-        console.log('authenticated', authenticated);
+      // if (Platform.OS === 'web') {
+      //   const authClient = await AuthClient.create();
+      //   setAuthClient(authClient);
+      //   const authenticated = await authClient.isAuthenticated();
+      //   console.log('authenticated', authenticated);
 
-        if (authenticated) {
-          const identity = authClient.getIdentity() as DelegationIdentity;
+      //   if (authenticated) {
+      //     const identity = authClient.getIdentity() as DelegationIdentity;
+      //     setIdentity(identity);
+      //     console.log('identity set from authClient');
+      //   }
+
+      //   setIsReady(true);
+      //   return;
+      // }
+
+      // const storedBaseKey = await SecureStore.getItemAsync('baseKey');
+      try {
+        const appKey = await setupAppKey();
+        const delegation = await retrieveValidDelegation();
+
+        if (appKey && delegation) {
+          const identity = DelegationIdentity.fromDelegation(
+            appKey,
+            delegation,
+          );
           setIdentity(identity);
-          console.log('identity set from authClient');
         }
-
+      } catch (error) {
+        setAuthError(error);
+      } finally {
         setIsReady(true);
-        return;
       }
-
-      const storedBaseKey = await SecureStore.getItemAsync('baseKey');
-
-      if (storedBaseKey) {
-        if (!baseKey) {
-          console.log('Restoring baseKey');
-          const key = Ed25519KeyIdentity.fromJSON(storedBaseKey);
-          setBaseKey(key);
-        }
-      } else {
-        console.log('Generating new baseKey');
-        const key = Ed25519KeyIdentity.generate();
-        await SecureStore.setItemAsync('baseKey', JSON.stringify(key.toJSON()));
-        setBaseKey(key);
-      }
-
-      const storedDelegation = await AsyncStorage.getItem('delegation');
-
-      if (!identity && storedBaseKey && storedDelegation) {
-        const baseKey = Ed25519KeyIdentity.fromJSON(storedBaseKey);
-        const delegation = DelegationChain.fromJSON(storedDelegation);
-        const identity = DelegationIdentity.fromDelegation(baseKey, delegation);
-
-        if (isDelegationValid(delegation)) {
-          console.log('Setting identity from baseKey and delegation');
-          setIdentity(identity);
-        } else {
-          console.log('Invalid delegation chain, removing delegation');
-          await AsyncStorage.removeItem('delegation');
-        }
-      }
-
-      setIsReady(true);
     })();
   }, []);
 
   // Handle URL changes for login callback
   useEffect(() => {
-    if (identity || !baseKey || !url) {
+    if (identity || !url) {
       return;
     }
 
@@ -110,12 +94,8 @@ export function useAuth() {
       (async () => {
         try {
           console.log('Processing delegation from URL');
-          const chain = DelegationChain.fromJSON(JSON.parse(delegation));
-          await AsyncStorage.setItem(
-            'delegation',
-            JSON.stringify(chain.toJSON()),
-          );
-          const id = DelegationIdentity.fromDelegation(baseKey, chain);
+          const delegationChain = await saveDelegation(delegation);
+          const id = await identityFromDelegation(delegationChain);
           setIdentity(id);
           console.log('identity set from delegation');
 
@@ -128,71 +108,73 @@ export function useAuth() {
   }, [url]);
 
   const login = async () => {
-    console.log('Logging in');
-    // Save the current path before login
-    saveCurrentPath();
+    try {
+      console.log('Logging in');
+      // Save the current path before login
+      saveCurrentPath();
 
-    if (Platform.OS === 'web') {
-      if (!authClient) {
-        throw new Error('Auth client not initialized');
-      }
+      // if (Platform.OS === 'web') {
+      //   if (!authClient) {
+      //     throw new Error('Auth client not initialized');
+      //   }
+
+      //   const iiUri = getInternetIdentityURL();
+      //   await authClient.login({
+      //     identityProvider: iiUri,
+      //     onSuccess: () => {
+      //       const identity = authClient.getIdentity() as DelegationIdentity;
+      //       setIdentity(identity);
+      //       console.log('identity set from authClient');
+      //     },
+      //   });
+      //   return;
+      // }
+
+      const redirectUri = createURL('/');
+      console.log('redirectUri', redirectUri);
+
+      const appKey = await retrieveAppKey();
+      const pubkey = toHex(appKey.getPublicKey().toDer());
 
       const iiUri = getInternetIdentityURL();
-      await authClient.login({
-        identityProvider: iiUri,
-        onSuccess: () => {
-          const identity = authClient.getIdentity() as DelegationIdentity;
-          setIdentity(identity);
-          console.log('identity set from authClient');
-        },
-      });
-      return;
+      console.log('iiUri', iiUri);
+      const iiIntegrationURL = getCanisterURL(
+        ENV_VARS.CANISTER_ID_II_INTEGRATION,
+      );
+      const url = new URL(iiIntegrationURL);
+
+      url.searchParams.set('redirect_uri', redirectUri);
+      url.searchParams.set('pubkey', pubkey);
+      url.searchParams.set('ii_uri', iiUri);
+
+      await WebBrowser.openBrowserAsync(url.toString());
+    } catch (error) {
+      setAuthError(error);
     }
-
-    const redirectUri = createURL('/');
-
-    if (!baseKey) {
-      throw new Error('No base key');
-    }
-
-    const pubkey = toHex(baseKey.getPublicKey().toDer());
-
-    const iiUri = getInternetIdentityURL();
-
-    const iiIntegrationURL = getCanisterURL(
-      ENV_VARS.CANISTER_ID_II_INTEGRATION,
-    );
-    const url = new URL(iiIntegrationURL);
-
-    url.searchParams.set('redirect_uri', redirectUri);
-    url.searchParams.set('pubkey', pubkey);
-    url.searchParams.set('ii_uri', iiUri);
-
-    await WebBrowser.openBrowserAsync(url.toString());
   };
 
   const logout = async () => {
     console.log('Logging out');
     try {
       saveCurrentPath();
+      const storage = await getStorage();
+      // if (Platform.OS === 'web') {
+      //   if (!authClient) {
+      //     throw new Error('Auth client not initialized');
+      //   }
 
-      if (Platform.OS === 'web') {
-        if (!authClient) {
-          throw new Error('Auth client not initialized');
-        }
+      //   await authClient.logout();
+      //   setIdentity(undefined);
+      //   console.log('identity set to undefined after logout for web');
+      //   return;
+      // }
 
-        await authClient.logout();
-        setIdentity(undefined);
-        console.log('identity set to undefined after logout for web');
-        return;
-      }
-
-      await AsyncStorage.removeItem('delegation');
+      //await AsyncStorage.removeItem('delegation');
+      await storage.removeFromStorage('delegation');
       setIdentity(undefined);
       console.log('identity set to undefined after logout for native');
     } catch (error) {
-      console.error('Error during logout:', error);
-      throw error;
+      setAuthError(error);
     }
   };
 
@@ -215,5 +197,6 @@ export function useAuth() {
     lastPath,
     saveCurrentPath,
     clearLastPath,
+    authError,
   };
 }

@@ -1,33 +1,35 @@
 import React, { createContext, useContext } from 'react';
 import { DelegationIdentity } from '@dfinity/identity';
 import { Principal } from '@dfinity/principal';
+import { useAuth } from '@/hooks/useAuth';
 
-interface AuthContextType {
-  identity: DelegationIdentity | undefined;
-  isReady: boolean;
-  isAuthenticated: boolean;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
-  aesEncrypt: (params: { plaintext: Uint8Array }) => Promise<Uint8Array>;
-  aesDecrypt: (params: { ciphertext: Uint8Array }) => Promise<Uint8Array>;
-  hasAesKey: boolean;
-  clearAesRawKey: () => void;
-  transportPublicKey: Uint8Array;
-  decryptExistingAesKey: (
-    encryptedAesKey: Uint8Array,
-    encryptedKey: Uint8Array,
-    publicKey: Uint8Array,
-    principal: Principal,
-  ) => Promise<void>;
-  generateAesKey: () => Promise<void>;
-  generateAndEncryptAesKey: (
-    publicKey: Uint8Array,
-    principal: Principal,
-  ) => Promise<Uint8Array>;
-  lastPath: string | undefined;
-  saveCurrentPath: () => void;
-  clearLastPath: () => void;
-}
+// interface AuthContextType {
+//   identity: DelegationIdentity | undefined;
+//   isReady: boolean;
+//   isAuthenticated: boolean;
+//   login: () => Promise<void>;
+//   logout: () => Promise<void>;
+//   aesEncrypt: (params: { plaintext: Uint8Array }) => Promise<Uint8Array>;
+//   aesDecrypt: (params: { ciphertext: Uint8Array }) => Promise<Uint8Array>;
+//   hasAesKey: boolean;
+//   clearAesRawKey: () => void;
+//   transportPublicKey: Uint8Array;
+//   decryptExistingAesKey: (
+//     encryptedAesKey: Uint8Array,
+//     encryptedKey: Uint8Array,
+//     publicKey: Uint8Array,
+//     principal: Principal,
+//   ) => Promise<void>;
+//   generateAesKey: () => Promise<void>;
+//   generateAndEncryptAesKey: (
+//     publicKey: Uint8Array,
+//     principal: Principal,
+//   ) => Promise<Uint8Array>;
+//   lastPath: string | undefined;
+//   saveCurrentPath: () => void;
+//   clearLastPath: () => void;
+// }
+type AuthContextType = ReturnType<typeof useAuth>;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
