@@ -13,21 +13,19 @@ import { getStorage } from '@/storage/platformStorage';
 import { setupAppKey, retrieveAppKey } from '@/icp/appKeyUtils';
 import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
 import { identityFromDelegation } from '@/icp/identityUtils';
+import { IIIntegrationClient } from '@/icp/IIIntegrationClient';
+import { Platform } from 'react-native';
 // Create a single instance of AesOperations to be used across the app
 const aesOperations = new AesOperations();
+const iiIntegrationClient = new IIIntegrationClient();
 
 export function useAuth() {
-  const [baseKey, setBaseKey] = useState<Ed25519KeyIdentity | undefined>(
-    undefined,
-  );
   const [isReady, setIsReady] = useState(false);
   const url = useURL();
-  console.log('url', url);
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
     undefined,
   );
   const [authError, setAuthError] = useState<unknown | undefined>(undefined);
-  // Use our new path management hook
   const { saveCurrentPath, lastPath, clearLastPath } = useLastPath();
 
   // Initialize auth state
@@ -79,6 +77,14 @@ export function useAuth() {
     })();
   }, []);
 
+  const setupIdentityFromDelegation = async (delegation: string) => {
+    console.log('Processing delegation from URL');
+    const delegationChain = await saveDelegation(delegation);
+    const id = await identityFromDelegation(delegationChain);
+    setIdentity(id);
+    console.log('identity set from delegation');
+  };
+
   // Handle URL changes for login callback
   useEffect(() => {
     if (identity || !url) {
@@ -93,15 +99,11 @@ export function useAuth() {
     if (delegation) {
       (async () => {
         try {
-          console.log('Processing delegation from URL');
-          const delegationChain = await saveDelegation(delegation);
-          const id = await identityFromDelegation(delegationChain);
-          setIdentity(id);
-          console.log('identity set from delegation');
+          await setupIdentityFromDelegation(delegation);
 
           WebBrowser.dismissBrowser();
         } catch (error) {
-          console.error('Error in delegation processing:', error);
+          setAuthError(error);
         }
       })();
     }
@@ -147,7 +149,16 @@ export function useAuth() {
       url.searchParams.set('pubkey', pubkey);
       url.searchParams.set('ii_uri', iiUri);
 
-      await WebBrowser.openBrowserAsync(url.toString());
+      if (Platform.OS === 'web') {
+        iiIntegrationClient.on('success', (response) => {
+          console.log('IIIntegration success');
+          setupIdentityFromDelegation(response.delegation);
+          iiIntegrationClient.close();
+        });
+        await iiIntegrationClient.open({ url: url.toString() });
+      } else {
+        await WebBrowser.openBrowserAsync(url.toString());
+      }
     } catch (error) {
       setAuthError(error);
     }

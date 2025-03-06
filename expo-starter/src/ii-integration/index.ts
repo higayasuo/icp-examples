@@ -91,11 +91,25 @@ const main = async (): Promise<void> => {
             try {
               const delegationIdentity =
                 authClient.getIdentity() as DelegationIdentity;
-              const url = buildRedirectURLWithDelegation(
-                redirectUri,
-                delegationIdentity,
-              );
-              window.location.href = url;
+
+              if (window.opener) {
+                const message = {
+                  kind: 'success',
+                  delegation: JSON.stringify(
+                    delegationIdentity.getDelegation().toJSON(),
+                  ),
+                };
+                window.opener.postMessage(message, new URL(redirectUri).origin);
+                window.opener.focus();
+              } else {
+                const url = buildRedirectURLWithDelegation(
+                  redirectUri,
+                  delegationIdentity,
+                );
+                window.location.href = url;
+              }
+              const win = window.open('', '_self');
+              win?.close();
             } catch (error) {
               renderError(formatError('delegation retrieval failed', error));
             }

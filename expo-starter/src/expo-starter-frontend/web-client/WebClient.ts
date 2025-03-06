@@ -98,7 +98,12 @@ export class WebClient<T extends { kind: string }> {
   setupEventHandler(targetURL: URL): void {
     this.eventHandler = (event: MessageEvent<T>) => {
       try {
+        if (window?.location?.origin === event.origin) {
+          return;
+        }
+
         if (event.origin !== targetURL.origin) {
+          console.log('event', event);
           throw new OriginMismatchError(targetURL.origin, event.origin);
         }
 
