@@ -41,23 +41,6 @@ export function useAuth() {
     }
 
     (async () => {
-      // if (Platform.OS === 'web') {
-      //   const authClient = await AuthClient.create();
-      //   setAuthClient(authClient);
-      //   const authenticated = await authClient.isAuthenticated();
-      //   console.log('authenticated', authenticated);
-
-      //   if (authenticated) {
-      //     const identity = authClient.getIdentity() as DelegationIdentity;
-      //     setIdentity(identity);
-      //     console.log('identity set from authClient');
-      //   }
-
-      //   setIsReady(true);
-      //   return;
-      // }
-
-      // const storedBaseKey = await SecureStore.getItemAsync('baseKey');
       try {
         const appKey = await setupAppKey();
         const delegation = await retrieveValidDelegation();
@@ -115,23 +98,6 @@ export function useAuth() {
       // Save the current path before login
       saveCurrentPath();
 
-      // if (Platform.OS === 'web') {
-      //   if (!authClient) {
-      //     throw new Error('Auth client not initialized');
-      //   }
-
-      //   const iiUri = getInternetIdentityURL();
-      //   await authClient.login({
-      //     identityProvider: iiUri,
-      //     onSuccess: () => {
-      //       const identity = authClient.getIdentity() as DelegationIdentity;
-      //       setIdentity(identity);
-      //       console.log('identity set from authClient');
-      //     },
-      //   });
-      //   return;
-      // }
-
       const redirectUri = createURL('/');
       console.log('redirectUri', redirectUri);
 
@@ -169,21 +135,9 @@ export function useAuth() {
     try {
       saveCurrentPath();
       const storage = await getStorage();
-      // if (Platform.OS === 'web') {
-      //   if (!authClient) {
-      //     throw new Error('Auth client not initialized');
-      //   }
-
-      //   await authClient.logout();
-      //   setIdentity(undefined);
-      //   console.log('identity set to undefined after logout for web');
-      //   return;
-      // }
-
-      //await AsyncStorage.removeItem('delegation');
       await storage.removeFromStorage('delegation');
       setIdentity(undefined);
-      console.log('identity set to undefined after logout for native');
+      console.log('identity set to undefined after logout');
     } catch (error) {
       setAuthError(error);
     }
