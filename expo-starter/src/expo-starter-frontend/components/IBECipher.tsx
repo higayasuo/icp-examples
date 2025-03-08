@@ -11,9 +11,9 @@ import { ActorSubclass, Actor } from '@dfinity/agent';
 import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import { platformCrypto } from '@/crypto/platformCrypto';
 import { principalFromAgent } from '@/icp/principalFromAgent';
-import { ibeEncrypt } from '@/icp/ibeEncrypt';
-import { ibeDecrypt } from '@/icp/ibeDecrypt';
-import { createTransportSecretKey } from '@/icp/TransportSecretKeyWrapper';
+import { ibeEncrypt } from '@/icp/ibeEncrypt2';
+import { ibeDecrypt } from '@/icp/ibeDecrypt2';
+import { createTransportSecretKey } from '@/icp/TransportSecretKeyWrapper2';
 
 // Utility function to allow UI thread to update
 const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 0));

@@ -1,12 +1,11 @@
 import { platformCrypto } from '@/crypto/platformCrypto';
-import { ibeEncrypt } from './ibeEncrypt';
-import { ibeDecrypt } from './ibeDecrypt';
-import { Principal } from '@dfinity/principal';
 import {
+  ibeEncrypt,
+  ibeDecrypt,
   TransportSecretKeyWrapper,
   createTransportSecretKey,
-} from './TransportSecretKeyWrapper';
-
+} from 'vetkeys-client-utils';
+import { Principal } from '@dfinity/principal';
 /**
  * AesOperations - Direct implementation of cryptographic operations
  * This class handles AES key management and encryption/decryption processes
