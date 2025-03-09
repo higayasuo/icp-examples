@@ -10,13 +10,12 @@ import { getStorage } from '@/storage/platformStorage';
 import { setupAppKey, retrieveAppKey } from '@/icp/appKeyUtils';
 import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
 import { identityFromDelegation } from '@/icp/identityUtils';
-import { IIIntegrationClient } from '@/icp/IIIntegrationClient';
+import { IIIntegrationMessenger } from '@/icp/IIIntegrationMessenger';
 import { Platform } from 'react-native';
 import { CanisterManager } from 'canister-manager';
 import { HOST_ADDRESS } from '@/icp/constants';
 
-// Create a single instance of IIIntegrationClient
-const iiIntegrationClient = new IIIntegrationClient();
+const iiIntegrationMessenger = new IIIntegrationMessenger();
 
 export function useAuth() {
   const [isReady, setIsReady] = useState(false);
@@ -131,13 +130,13 @@ export function useAuth() {
       url.searchParams.set('ii_uri', iiUri);
 
       if (Platform.OS === 'web') {
-        iiIntegrationClient.on('success', async (response) => {
+        iiIntegrationMessenger.on('success', async (response) => {
           console.log('IIIntegration success');
           await setupIdentityFromDelegation(response.delegation);
-          iiIntegrationClient.close();
+          iiIntegrationMessenger.close();
         });
 
-        await iiIntegrationClient.open({
+        await iiIntegrationMessenger.open({
           url: url.toString(),
         });
       } else {

@@ -1,4 +1,4 @@
-import { WebClient, type ErrorFunc } from '@/web-client/WebClient';
+import { IframeMessenger, type ErrorFunc } from '@higayasuo/iframe-messenger';
 
 type IIIntegrationSuccessResponse = {
   kind: 'success';
@@ -7,7 +7,7 @@ type IIIntegrationSuccessResponse = {
 
 type IIIntegrationResponse = IIIntegrationSuccessResponse;
 
-export class IIIntegrationClient extends WebClient<IIIntegrationResponse> {
+export class IIIntegrationMessenger extends IframeMessenger<IIIntegrationResponse> {
   constructor(errorFunc: ErrorFunc = console.error) {
     super(errorFunc);
   }

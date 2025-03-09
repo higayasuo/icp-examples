@@ -23,6 +23,7 @@
     "@dfinity/identity": "^0.20.2",
     "@dfinity/principal": "^0.20.2",
     "@expo/vector-icons": "^14.0.2",
+    "@higayasuo/iframe-messenger": "^0.1.0",
     "@noble/curves": "file:noble-curves-1.2.0.tgz",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/native": "^7.0.14",
