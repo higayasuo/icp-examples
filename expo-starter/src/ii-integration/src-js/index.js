@@ -70,20 +70,37 @@ const main = async () => {
                     onSuccess: () => {
                         try {
                             const delegationIdentity = authClient.getIdentity();
-                            if (window.opener) {
-                                const message = {
-                                    kind: 'success',
-                                    delegation: JSON.stringify(delegationIdentity.getDelegation().toJSON()),
-                                };
-                                window.opener.postMessage(message, new URL(redirectUri).origin);
-                                window.opener.focus();
+                            if (window.parent) {
+                                // Check if we're in an iframe (web browser case)
+                                const isIframe = window.parent !== window;
+                                if (isIframe) {
+                                    // We're in a web browser iframe
+                                    console.log('Web browser detected, using postMessage');
+                                    const message = {
+                                        kind: 'success',
+                                        delegation: JSON.stringify(delegationIdentity.getDelegation().toJSON()),
+                                    };
+                                    window.parent.postMessage(message, new URL(redirectUri).origin);
+                                }
+                                else {
+                                    // We're in a native app's WebView
+                                    console.log('Native app detected, using URL redirection');
+                                    const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
+                                    console.log('Redirect URL:', url);
+                                    try {
+                                        window.location.href = url;
+                                    }
+                                    catch (redirectError) {
+                                        console.error('Redirect error:', redirectError);
+                                        // Try alternative redirection method
+                                        window.location.replace(url);
+                                    }
+                                }
                             }
                             else {
-                                const url = buildRedirectURLWithDelegation(redirectUri, delegationIdentity);
-                                window.location.href = url;
+                                console.log('No parent window found, using direct redirection');
+                                throw new Error('No parent window found');
                             }
-                            const win = window.open('', '_self');
-                            win?.close();
                         }
                         catch (error) {
                             renderError(formatError('delegation retrieval failed', error));

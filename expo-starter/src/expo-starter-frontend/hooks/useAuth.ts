@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { toHex } from '@dfinity/agent';
-import { Ed25519KeyIdentity, DelegationIdentity } from '@dfinity/identity';
+import { DelegationIdentity } from '@dfinity/identity';
 import * as WebBrowser from 'expo-web-browser';
 import { useURL, createURL } from 'expo-linking';
 
-import { getCanisterURL } from '@/icp/getCanisterURL';
 import { ENV_VARS } from '@/icp/env.generated';
 import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AesOperations } from '@/icp/AesOperations';
@@ -15,6 +14,8 @@ import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
 import { identityFromDelegation } from '@/icp/identityUtils';
 import { IIIntegrationClient } from '@/icp/IIIntegrationClient';
 import { Platform } from 'react-native';
+import { CanisterManager } from '@/icp/CanisterManager';
+import { HOST_ADDRESS } from '@/icp/constants';
 // Create a single instance of AesOperations to be used across the app
 const aesOperations = new AesOperations();
 const iiIntegrationClient = new IIIntegrationClient();
@@ -104,9 +105,15 @@ export function useAuth() {
       const appKey = await retrieveAppKey();
       const pubkey = toHex(appKey.getPublicKey().toDer());
 
+      const canisterManager = new CanisterManager({
+        dfxNetwork: ENV_VARS.DFX_NETWORK,
+        localReplicaHostForSSL: HOST_ADDRESS,
+      });
+
       const iiUri = getInternetIdentityURL();
       console.log('iiUri', iiUri);
-      const iiIntegrationURL = getCanisterURL(
+
+      const iiIntegrationURL = canisterManager.getFrontendCanisterURL(
         ENV_VARS.CANISTER_ID_II_INTEGRATION,
       );
       const url = new URL(iiIntegrationURL);
@@ -116,12 +123,15 @@ export function useAuth() {
       url.searchParams.set('ii_uri', iiUri);
 
       if (Platform.OS === 'web') {
-        iiIntegrationClient.on('success', (response) => {
+        iiIntegrationClient.on('success', async (response) => {
           console.log('IIIntegration success');
-          setupIdentityFromDelegation(response.delegation);
+          await setupIdentityFromDelegation(response.delegation);
           iiIntegrationClient.close();
         });
-        await iiIntegrationClient.open({ url: url.toString() });
+
+        await iiIntegrationClient.open({
+          url: url.toString(),
+        });
       } else {
         await WebBrowser.openBrowserAsync(url.toString());
       }

@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-itunes-app" content="app-id=6473462222" />
+    <meta
+        httpEquiv="Content-Security-Policy"
+        content="default-src 'self';
+          script-src 'self' 'unsafe-eval' 'unsafe-inline';
+          connect-src 'self' http://localhost:4943 http://*.localhost:4943 https://192.168.0.210:* https://identity.ic0.app https://ic0.app https://*.ic0.app;
+          frame-ancestors 'self' http://localhost:* http://*.localhost:* http://192.168.0.210:*;
+          img-src 'self' data:;
+          style-src 'self' 'unsafe-inline';
+          object-src 'none';
+          base-uri 'self';
+          form-action 'self';"
+    />
     <title>II Login</title>
     <style>
         body {

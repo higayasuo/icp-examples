@@ -1,6 +1,5 @@
 import { Ed25519KeyIdentity } from '@dfinity/identity';
 import { getStorage } from '../storage/platformStorage';
-import { DerEncodedPublicKey } from '@dfinity/agent';
 
 const APP_KEY_KEY = 'appKey';
 

@@ -27,6 +27,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/native": "^7.0.14",
     "base64-js": "^1.5.1",
+    "canister-manager": "^0.1.1",
     "crypto-js": "^4.2.0",
     "expo": "^52.0.36",
     "expo-clipboard": "~7.0.1",
@@ -62,6 +63,11 @@
     "vitest": "^2.1.8"
   },
   "private": true,
+  "resolutions": {
+    "@dfinity/agent": "0.20.2",
+    "@dfinity/candid": "0.20.2",
+    "@dfinity/principal": "0.20.2"
+  },
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {

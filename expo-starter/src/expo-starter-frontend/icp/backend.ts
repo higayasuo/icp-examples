@@ -1,12 +1,18 @@
 import { ENV_VARS } from '@/icp/env.generated';
-import { createActor } from '@/icp/createActor';
 import { idlFactory, _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Identity, ActorSubclass } from '@dfinity/agent';
+import { HOST_ADDRESS } from './constants';
+import { CanisterManager } from './CanisterManager';
 
 export const createBackend = (
   identity: Identity | undefined,
 ): ActorSubclass<_SERVICE> => {
-  return createActor<_SERVICE>({
+  const canisterManager = new CanisterManager({
+    dfxNetwork: ENV_VARS.DFX_NETWORK,
+    localReplicaHostForSSL: HOST_ADDRESS,
+  });
+
+  return canisterManager.createActor<_SERVICE>({
     canisterId: ENV_VARS.CANISTER_ID_EXPO_STARTER_BACKEND,
     interfaceFactory: idlFactory,
     identity,
