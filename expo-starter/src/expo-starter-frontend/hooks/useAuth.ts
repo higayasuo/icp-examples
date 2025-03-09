@@ -5,7 +5,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { useURL, createURL } from 'expo-linking';
 
 import { ENV_VARS } from '@/icp/env.generated';
-import { getInternetIdentityURL } from '@/icp/getInternetIdentityURL';
 import { AesOperations } from '@/icp/AesOperations';
 import { useLastPath } from './useLastPath';
 import { getStorage } from '@/storage/platformStorage';
@@ -14,7 +13,7 @@ import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
 import { identityFromDelegation } from '@/icp/identityUtils';
 import { IIIntegrationClient } from '@/icp/IIIntegrationClient';
 import { Platform } from 'react-native';
-import { CanisterManager } from '@/icp/CanisterManager';
+import { CanisterManager } from 'canister-manager';
 import { HOST_ADDRESS } from '@/icp/constants';
 // Create a single instance of AesOperations to be used across the app
 const aesOperations = new AesOperations();
@@ -107,10 +106,12 @@ export function useAuth() {
 
       const canisterManager = new CanisterManager({
         dfxNetwork: ENV_VARS.DFX_NETWORK,
-        localReplicaHostForSSL: HOST_ADDRESS,
+        localIPAddress: HOST_ADDRESS,
       });
 
-      const iiUri = getInternetIdentityURL();
+      const iiUri = canisterManager.getInternetIdentityURL(
+        ENV_VARS.CANISTER_ID_INTERNET_IDENTITY,
+      );
       console.log('iiUri', iiUri);
 
       const iiIntegrationURL = canisterManager.getFrontendCanisterURL(

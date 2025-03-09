@@ -2,14 +2,13 @@ import { Actor, HttpAgent, ActorSubclass, Identity } from '@dfinity/agent';
 import { IDL } from '@dfinity/candid';
 import { AnonymousIdentity } from '@dfinity/agent';
 
-import { ENV_VARS } from './env.generated';
-import { getCanisterURL } from './getCanisterURL';
-
 /**
  * Parameters for creating an actor.
  */
 type CreateActorParams = {
+  canisterUrl: string;
   canisterId: string;
+  dfxNetwork: string;
   interfaceFactory: IDL.InterfaceFactory;
   identity?: Identity;
 };
@@ -21,14 +20,14 @@ type CreateActorParams = {
  * @returns {ActorSubclass<T>} - The created actor.
  */
 export function createActor<T>({
+  canisterUrl,
   canisterId,
   interfaceFactory,
+  dfxNetwork,
   identity = new AnonymousIdentity(),
 }: CreateActorParams): ActorSubclass<T> {
-  const host = getCanisterURL(canisterId);
-
   const httpAgentOptions = {
-    host,
+    host: canisterUrl,
     identity,
     // fetchOptions: {
     //   reactNative: {
@@ -44,9 +43,9 @@ export function createActor<T>({
 
   const agent = new HttpAgent(httpAgentOptions);
 
-  if (ENV_VARS.DFX_NETWORK === 'local') {
+  if (dfxNetwork === 'local') {
     agent.fetchRootKey().catch((err) => {
-      console.warn(`Your local replica is not running: ${host}`);
+      console.warn(`Your local replica is not running: ${canisterUrl}`);
       console.error(err);
       throw err;
     });
