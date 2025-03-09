@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toHex } from '@dfinity/agent';
 import { DelegationIdentity } from '@dfinity/identity';
 import * as WebBrowser from 'expo-web-browser';
 import { useURL, createURL } from 'expo-linking';
+import { usePathname } from 'expo-router';
 
 import { ENV_VARS } from '@/icp/env.generated';
-import { AesOperations } from '@/icp/AesOperations';
-import { useLastPath } from './useLastPath';
 import { getStorage } from '@/storage/platformStorage';
 import { setupAppKey, retrieveAppKey } from '@/icp/appKeyUtils';
 import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
@@ -15,8 +14,8 @@ import { IIIntegrationClient } from '@/icp/IIIntegrationClient';
 import { Platform } from 'react-native';
 import { CanisterManager } from 'canister-manager';
 import { HOST_ADDRESS } from '@/icp/constants';
-// Create a single instance of AesOperations to be used across the app
-const aesOperations = new AesOperations();
+
+// Create a single instance of IIIntegrationClient
 const iiIntegrationClient = new IIIntegrationClient();
 
 export function useAuth() {
@@ -26,7 +25,16 @@ export function useAuth() {
     undefined,
   );
   const [authError, setAuthError] = useState<unknown | undefined>(undefined);
-  const { saveCurrentPath, lastPath, clearLastPath } = useLastPath();
+
+  // Login path management
+  const currentPath = usePathname();
+  const pathWhenLoginRef = useRef<string | undefined>(undefined);
+
+  const savePathWhenLogin = useCallback(() => {
+    console.log('Saving path when login:', currentPath);
+    if (!currentPath) return;
+    pathWhenLoginRef.current = currentPath;
+  }, [currentPath]);
 
   // Initialize auth state
   useEffect(() => {
@@ -83,7 +91,6 @@ export function useAuth() {
       (async () => {
         try {
           await setupIdentityFromDelegation(delegation);
-
           WebBrowser.dismissBrowser();
         } catch (error) {
           setAuthError(error);
@@ -96,7 +103,7 @@ export function useAuth() {
     try {
       console.log('Logging in');
       // Save the current path before login
-      saveCurrentPath();
+      savePathWhenLogin();
 
       const redirectUri = createURL('/');
       console.log('redirectUri', redirectUri);
@@ -144,7 +151,6 @@ export function useAuth() {
   const logout = async () => {
     console.log('Logging out');
     try {
-      saveCurrentPath();
       const storage = await getStorage();
       await storage.removeFromStorage('delegation');
       setIdentity(undefined);
@@ -160,19 +166,7 @@ export function useAuth() {
     isAuthenticated: !!identity,
     login,
     logout,
-    decryptExistingAesKey:
-      aesOperations.decryptExistingAesKey.bind(aesOperations),
-    generateAesKey: aesOperations.generateAesKey.bind(aesOperations),
-    generateAndEncryptAesKey:
-      aesOperations.generateAndEncryptAesKey.bind(aesOperations),
-    aesEncrypt: aesOperations.aesEncrypt.bind(aesOperations),
-    aesDecrypt: aesOperations.aesDecrypt.bind(aesOperations),
-    hasAesKey: aesOperations.hasAesKey,
-    clearAesRawKey: aesOperations.clearAesRawKey.bind(aesOperations),
-    transportPublicKey: aesOperations.transportPublicKey,
-    lastPath,
-    saveCurrentPath,
-    clearLastPath,
+    pathWhenLogin: pathWhenLoginRef.current,
     authError,
   };
 }

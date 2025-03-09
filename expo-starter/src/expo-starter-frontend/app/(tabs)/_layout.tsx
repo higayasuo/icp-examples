@@ -15,9 +15,9 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const { identity, login, logout, lastPath } = useAuthContext();
+  const { identity, login, logout, pathWhenLogin } = useAuthContext();
   const pathname = usePathname();
-  const path = lastPath ?? pathname;
+  const path = pathWhenLogin ?? pathname;
 
   const routeName = path === '/' ? 'index' : path.slice(1);
 

@@ -9,14 +9,14 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { getAesOperationsInstance } from '@/icp/aesOperationsInstance';
 import { LogIn } from './LogIn';
 
 export const AesIbeCipher = () => {
-  const { aesEncrypt, aesDecrypt, hasAesKey, identity, login } =
-    useAuthContext();
+  const { identity, login } = useAuthContext();
+  const aesOperations = getAesOperationsInstance();
 
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
@@ -35,7 +35,7 @@ export const AesIbeCipher = () => {
       Keyboard.dismiss();
     }
 
-    if (!hasAesKey) {
+    if (!aesOperations.hasAesKey) {
       setError('AES key not generated');
       return;
     }
@@ -45,8 +45,10 @@ export const AesIbeCipher = () => {
 
     try {
       const plaintextBytes = new TextEncoder().encode(inputText);
-      const ciphertext = await aesEncrypt({ plaintext: plaintextBytes });
-      const decrypted = await aesDecrypt({ ciphertext });
+      const ciphertext = await aesOperations.aesEncrypt({
+        plaintext: plaintextBytes,
+      });
+      const decrypted = await aesOperations.aesDecrypt({ ciphertext });
 
       setResult(new TextDecoder().decode(decrypted));
     } catch (err) {

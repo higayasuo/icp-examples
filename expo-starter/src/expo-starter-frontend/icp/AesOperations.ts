@@ -11,7 +11,6 @@ import { Principal } from '@dfinity/principal';
  * This class handles AES key management and encryption/decryption processes
  */
 export class AesOperations {
-  // Internal state
   private aesRawKey: Uint8Array | undefined = undefined;
   private tsk: TransportSecretKeyWrapper;
   public readonly transportPublicKey: Uint8Array;

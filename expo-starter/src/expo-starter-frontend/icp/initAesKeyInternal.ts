@@ -1,40 +1,33 @@
-import { useAuth } from '@/hooks/useAuth';
+import { DelegationIdentity } from '@dfinity/identity';
 import { createBackend, asymmetricKeys } from './backend';
-
-type Auth = ReturnType<typeof useAuth>;
+import { getAesOperationsInstance } from './aesOperationsInstance';
 
 /**
  * Initializes or retrieves an AES key for encryption/decryption
  * If no identity exists, generates a new AES key
  * If identity exists but no encrypted key exists, generates and encrypts a new AES key
  * If identity and encrypted key exist, decrypts the existing AES key
- * @param auth - Auth object containing identity and key management functions
+ * @param identity - The user's DelegationIdentity, if available
  */
-export const initAesKeyInternal = async (auth: Auth) => {
-  const {
-    identity,
-    generateAesKey,
-    clearAesRawKey,
-    decryptExistingAesKey,
-    generateAndEncryptAesKey,
-    transportPublicKey,
-  } = auth;
-
+export const initAesKeyInternal = async (
+  identity: DelegationIdentity | undefined,
+) => {
+  const aesOperations = getAesOperationsInstance();
   const totalStartTime = performance.now();
 
   if (!identity) {
     console.log('No identity found, generating new AES key');
-    await generateAesKey();
+    await aesOperations.generateAesKey();
     return;
   }
 
-  clearAesRawKey();
+  aesOperations.clearAesRawKey();
 
   const backend = createBackend(identity);
   const backendCallStartTime = performance.now();
   const { publicKey, encryptedAesKey, encryptedKey } = await asymmetricKeys({
     backend,
-    transportPublicKey,
+    transportPublicKey: aesOperations.transportPublicKey,
   });
   console.log(
     `Backend asymmetric_keys call took: ${
@@ -47,7 +40,7 @@ export const initAesKeyInternal = async (auth: Auth) => {
   if (encryptedAesKey && encryptedKey) {
     console.log('Decrypting existing AES key');
     const decryptStartTime = performance.now();
-    await decryptExistingAesKey(
+    await aesOperations.decryptExistingAesKey(
       encryptedAesKey,
       encryptedKey,
       publicKey,
@@ -61,7 +54,7 @@ export const initAesKeyInternal = async (auth: Auth) => {
   } else {
     console.log('Generating and encrypting new AES key');
     const generateStartTime = performance.now();
-    const newEncryptedAesKey = await generateAndEncryptAesKey(
+    const newEncryptedAesKey = await aesOperations.generateAndEncryptAesKey(
       publicKey,
       principal,
     );
@@ -79,7 +72,6 @@ export const initAesKeyInternal = async (auth: Auth) => {
     );
   }
 
-  //initializationCompleted.current = true;
   console.log(
     `Total initialization process took: ${
       performance.now() - totalStartTime

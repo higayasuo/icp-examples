@@ -76,7 +76,7 @@ function RootLayoutNav() {
       setError(undefined);
       setIsLoading(true);
 
-      await initAesKeyInternal(auth);
+      await initAesKeyInternal(identity);
     } catch (err) {
       console.error('Failed to initialize AES key:', err);
       setError(err);
