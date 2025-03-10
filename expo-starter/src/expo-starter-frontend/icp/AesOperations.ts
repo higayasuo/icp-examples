@@ -1,47 +1,54 @@
-import { platformCrypto } from '@/crypto/platformCrypto';
+import { platformCrypto, type CryptoModule } from 'expo-crypto-universal';
 import {
   ibeEncrypt,
   ibeDecrypt,
-  TransportSecretKeyWrapper,
-  createTransportSecretKey,
+  TransportSecretKey,
 } from 'vetkeys-client-utils';
-import { Principal } from '@dfinity/principal';
+
+/**
+ * Parameters for decrypting an existing AES key
+ */
+export interface DecryptExistingAesKeyParams {
+  /** The encrypted AES key */
+  encryptedAesKey: Uint8Array;
+  /** The encrypted key for IBE decryption */
+  encryptedKey: Uint8Array;
+  /** The public key */
+  publicKey: Uint8Array;
+  /** The user's principal as Uint8Array */
+  principal: Uint8Array;
+}
+
 /**
  * AesOperations - Direct implementation of cryptographic operations
  * This class handles AES key management and encryption/decryption processes
  */
 export class AesOperations {
   private aesRawKey: Uint8Array | undefined = undefined;
-  private tsk: TransportSecretKeyWrapper;
+  private tsk: TransportSecretKey;
   public readonly transportPublicKey: Uint8Array;
 
   constructor() {
     const tskSeed = platformCrypto.getRandomBytes(32);
-    this.tsk = createTransportSecretKey(tskSeed);
-    this.transportPublicKey = this.tsk.getPublicKey();
+    this.tsk = new TransportSecretKey(tskSeed);
+    this.transportPublicKey = this.tsk.public_key();
   }
 
   /**
    * Decrypt an existing AES key
-   * @param encryptedAesKey The encrypted AES key
-   * @param encryptedKey The encrypted key for IBE decryption
-   * @param publicKey The public key
-   * @param principal The user's principal
+   * @param params The parameters for decrypting the AES key
    */
   async decryptExistingAesKey(
-    encryptedAesKey: Uint8Array,
-    encryptedKey: Uint8Array,
-    publicKey: Uint8Array,
-    principal: Principal,
+    params: DecryptExistingAesKeyParams,
   ): Promise<void> {
     try {
       const startTime = performance.now();
 
       const decryptedKey = await ibeDecrypt({
-        ciphertext: encryptedAesKey,
-        principal,
-        encryptedKey,
-        publicKey,
+        ciphertext: params.encryptedAesKey,
+        principal: params.principal,
+        encryptedKey: params.encryptedKey,
+        publicKey: params.publicKey,
         tsk: this.tsk,
       });
 
@@ -64,40 +71,38 @@ export class AesOperations {
    * and stores it in memory
    */
   async generateAesKey(): Promise<void> {
-    this.aesRawKey = platformCrypto.getRandomBytes(32);
+    this.aesRawKey = platformCrypto!.getRandomBytes(32);
   }
 
   /**
    * Generate a new AES key and encrypt it if needed
    * @param publicKey The public key
-   * @param principal The user's principal
-   * @returns The encrypted AES key if user is not anonymous, undefined otherwise
+   * @param principal The user's principal as Uint8Array
+   * @returns The encrypted AES key
    */
   async generateAndEncryptAesKey(
     publicKey: Uint8Array,
-    principal: Principal,
+    principal: Uint8Array,
   ): Promise<Uint8Array> {
-    if (principal.isAnonymous()) {
-      throw new Error('Anonymous users cannot generate and encrypt AES keys');
-    }
-
-    this.generateAesKey();
-
+    await this.generateAesKey();
     return await this.encryptAesKey(publicKey, principal);
   }
 
   /**
    * Encrypt an AES key using IBE
    * @param publicKey The public key
-   * @param principal The user's principal
+   * @param principal The user's principal as Uint8Array
    * @returns The encrypted AES key
    */
   private async encryptAesKey(
     publicKey: Uint8Array,
-    principal: Principal,
+    principal: Uint8Array,
   ): Promise<Uint8Array> {
+    if (!this.aesRawKey) {
+      throw new Error('No AES key available.');
+    }
+
     try {
-      // Start IBE encryption process
       const startTime = performance.now();
 
       // Generate random seed for IBE encryption
@@ -117,7 +122,6 @@ export class AesOperations {
         }ms`,
       );
 
-      // Return encrypted AES key
       return encryptedBytes;
     } catch (error) {
       console.error('AesOperations: Error encrypting AES key:', error);
@@ -132,11 +136,12 @@ export class AesOperations {
    */
   async aesEncrypt(params: { plaintext: Uint8Array }): Promise<Uint8Array> {
     if (!this.aesRawKey) {
-      throw new Error('No AES key available. Generate a key first.');
+      throw new Error('No AES key available.');
     }
+
     return await platformCrypto.aesEncryptAsync(
       params.plaintext,
-      this.aesRawKey,
+      this.aesRawKey!,
     );
   }
 
@@ -147,11 +152,12 @@ export class AesOperations {
    */
   async aesDecrypt(params: { ciphertext: Uint8Array }): Promise<Uint8Array> {
     if (!this.aesRawKey) {
-      throw new Error('No AES key available. Generate a key first.');
+      throw new Error('No AES key available.');
     }
+
     return await platformCrypto.aesDecryptAsync(
       params.ciphertext,
-      this.aesRawKey,
+      this.aesRawKey!,
     );
   }
 

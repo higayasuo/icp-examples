@@ -36,16 +36,18 @@ export const initAesKeyInternal = async (
   );
 
   const principal = identity.getPrincipal();
+  // Convert Principal to Uint8Array
+  const principalBytes = principal.toUint8Array();
 
   if (encryptedAesKey && encryptedKey) {
     console.log('Decrypting existing AES key');
     const decryptStartTime = performance.now();
-    await aesOperations.decryptExistingAesKey(
+    await aesOperations.decryptExistingAesKey({
       encryptedAesKey,
       encryptedKey,
       publicKey,
-      principal,
-    );
+      principal: principal.toUint8Array(),
+    });
     console.log(
       `Decrypting existing AES key took: ${
         performance.now() - decryptStartTime
@@ -56,7 +58,7 @@ export const initAesKeyInternal = async (
     const generateStartTime = performance.now();
     const newEncryptedAesKey = await aesOperations.generateAndEncryptAesKey(
       publicKey,
-      principal,
+      principalBytes,
     );
     console.log(
       `Generating and encrypting new AES key took: ${
