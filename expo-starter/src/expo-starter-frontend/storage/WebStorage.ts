@@ -1,41 +1,68 @@
 import { Storage } from './Storage';
-import { DatabaseWrapper } from './db';
 
+/**
+ * WebStorage class implementing the Storage interface for web platforms.
+ * Uses sessionStorage for regular and secure storage operations.
+ */
 export class WebStorage implements Storage {
-  private db: DatabaseWrapper;
+  /**
+   * Creates a new instance of WebStorage.
+   */
+  constructor() {}
 
-  constructor(db: DatabaseWrapper) {
-    this.db = db;
-  }
-
+  /**
+   * Retrieves a value from regular storage.
+   * @param {string} key - The key of the item to retrieve.
+   * @returns {Promise<string | undefined>} - A promise that resolves to the retrieved value or undefined if not found.
+   */
   async getFromStorage(key: string): Promise<string | undefined> {
-    const startTime = performance.now();
-    const result = await this.db.get<string>(key);
-    console.log(`getFromStorage took ${performance.now() - startTime}ms`);
-    return result;
+    return sessionStorage.getItem(key) ?? undefined;
   }
 
+  /**
+   * Saves a value to regular storage.
+   * @param {string} key - The key under which the value should be stored.
+   * @param {string} value - The value to store.
+   * @returns {Promise<void>} - A promise that resolves when the value has been saved.
+   */
   async saveToStorage(key: string, value: string): Promise<void> {
-    const startTime = performance.now();
-    await this.db.put(key, value);
-    console.log(`saveToStorage took ${performance.now() - startTime}ms`);
+    sessionStorage.setItem(key, value);
   }
 
+  /**
+   * Removes a value from regular storage.
+   * @param {string} key - The key of the item to remove.
+   * @returns {Promise<void>} - A promise that resolves when the value has been removed.
+   */
   async removeFromStorage(key: string): Promise<void> {
-    const startTime = performance.now();
-    await this.db.delete(key);
-    console.log(`removeFromStorage took ${performance.now() - startTime}ms`);
+    sessionStorage.removeItem(key);
   }
 
+  /**
+   * Retrieves a value from secure storage.
+   * @param {string} key - The key of the item to retrieve.
+   * @returns {Promise<string | undefined>} - A promise that resolves to the retrieved value or undefined if not found.
+   */
   async getFromSecureStorage(key: string): Promise<string | undefined> {
-    return this.getFromStorage(key);
+    return sessionStorage.getItem(key) ?? undefined;
   }
 
+  /**
+   * Saves a value to secure storage.
+   * @param {string} key - The key under which the value should be stored.
+   * @param {string} value - The value to store.
+   * @returns {Promise<void>} - A promise that resolves when the value has been saved.
+   */
   async saveToSecureStorage(key: string, value: string): Promise<void> {
-    await this.saveToStorage(key, value);
+    sessionStorage.setItem(key, value);
   }
 
+  /**
+   * Removes a value from secure storage.
+   * @param {string} key - The key of the item to remove.
+   * @returns {Promise<void>} - A promise that resolves when the value has been removed.
+   */
   async removeFromSecureStorage(key: string): Promise<void> {
-    await this.removeFromStorage(key);
+    sessionStorage.removeItem(key);
   }
 }

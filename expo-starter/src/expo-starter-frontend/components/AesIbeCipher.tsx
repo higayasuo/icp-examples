@@ -11,13 +11,12 @@ import {
   Platform,
 } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getAesOperationsInstance } from '@/icp/aesOperationsInstance';
+import { getAesRawKey } from '@/icp/aesRawKeyUtils';
+import { platformCrypto } from 'expo-crypto-universal';
 import { LogIn } from './LogIn';
 
 export const AesIbeCipher = () => {
   const { identity, login } = useAuthContext();
-  const aesOperations = getAesOperationsInstance();
-
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
@@ -35,20 +34,20 @@ export const AesIbeCipher = () => {
       Keyboard.dismiss();
     }
 
-    if (!aesOperations.hasAesKey) {
-      setError('AES key not generated');
-      return;
-    }
-
     setBusy(true);
     setError(undefined);
 
     try {
+      const aesRawKey = await getAesRawKey();
       const plaintextBytes = new TextEncoder().encode(inputText);
-      const ciphertext = await aesOperations.aesEncrypt({
-        plaintext: plaintextBytes,
-      });
-      const decrypted = await aesOperations.aesDecrypt({ ciphertext });
+      const ciphertext = await platformCrypto.aesEncryptAsync(
+        plaintextBytes,
+        aesRawKey,
+      );
+      const decrypted = await platformCrypto.aesDecryptAsync(
+        ciphertext,
+        aesRawKey,
+      );
 
       setResult(new TextDecoder().decode(decrypted));
     } catch (err) {

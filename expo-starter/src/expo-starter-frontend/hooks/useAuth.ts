@@ -6,9 +6,17 @@ import { useURL, createURL } from 'expo-linking';
 import { usePathname } from 'expo-router';
 
 import { ENV_VARS } from '@/icp/env.generated';
-import { getStorage } from '@/storage/platformStorage';
-import { setupAppKey, retrieveAppKey } from '@/icp/appKeyUtils';
-import { retrieveValidDelegation, saveDelegation } from '@/icp/delegationUtils';
+import {
+  setupAppKey,
+  getAppKey,
+  findAppKey,
+  generateAppKey,
+} from '@/icp/appKeyUtils';
+import {
+  findValidDelegation,
+  saveDelegation,
+  removeDelegation,
+} from '@/icp/delegationUtils';
 import { identityFromDelegation } from '@/icp/identityUtils';
 import { IIIntegrationMessenger } from '@/icp/IIIntegrationMessenger';
 import { Platform } from 'react-native';
@@ -49,8 +57,8 @@ export function useAuth() {
 
     (async () => {
       try {
-        const appKey = await setupAppKey();
-        const delegation = await retrieveValidDelegation();
+        const appKey = await findAppKey();
+        const delegation = await findValidDelegation();
 
         if (appKey && delegation) {
           const identity = DelegationIdentity.fromDelegation(
@@ -58,6 +66,9 @@ export function useAuth() {
             delegation,
           );
           setIdentity(identity);
+        } else if (!appKey) {
+          await generateAppKey();
+          await removeDelegation();
         }
       } catch (error) {
         setAuthError(error);
@@ -68,7 +79,7 @@ export function useAuth() {
   }, []);
 
   const setupIdentityFromDelegation = async (delegation: string) => {
-    console.log('Processing delegation from URL');
+    console.log('Processing delegation');
     const delegationChain = await saveDelegation(delegation);
     const id = await identityFromDelegation(delegationChain);
     setIdentity(id);
@@ -107,7 +118,7 @@ export function useAuth() {
       const redirectUri = createURL('/');
       console.log('redirectUri', redirectUri);
 
-      const appKey = await retrieveAppKey();
+      const appKey = await getAppKey();
       const pubkey = toHex(appKey.getPublicKey().toDer());
 
       const canisterManager = new CanisterManager({
@@ -150,8 +161,7 @@ export function useAuth() {
   const logout = async () => {
     console.log('Logging out');
     try {
-      const storage = await getStorage();
-      await storage.removeFromStorage('delegation');
+      await removeDelegation();
       setIdentity(undefined);
       console.log('identity set to undefined after logout');
     } catch (error) {

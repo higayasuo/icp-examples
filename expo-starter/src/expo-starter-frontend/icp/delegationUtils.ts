@@ -1,17 +1,16 @@
 import { DelegationChain, isDelegationValid } from '@dfinity/identity';
-import { getStorage } from '../storage/platformStorage';
+import { platformStorage } from '../storage/platformStorage';
 
 const DELEGATION_KEY = 'delegation';
 
 /**
- * Retrieves a valid delegation chain from storage.
- * @returns Promise resolving to the stored DelegationChain if it exists and is valid, undefined otherwise
+ * Finds a valid delegation chain in storage.
+ * @returns {Promise<DelegationChain | undefined>} Promise resolving to the stored DelegationChain if it exists and is valid, undefined otherwise
  */
-export const retrieveValidDelegation = async (): Promise<
+export const findValidDelegation = async (): Promise<
   DelegationChain | undefined
 > => {
-  const storage = await getStorage();
-  const storedDelegation = await storage.getFromStorage(DELEGATION_KEY);
+  const storedDelegation = await platformStorage.getFromStorage(DELEGATION_KEY);
 
   if (storedDelegation) {
     const delegation = DelegationChain.fromJSON(storedDelegation);
@@ -20,7 +19,7 @@ export const retrieveValidDelegation = async (): Promise<
       return delegation;
     } else {
       console.log('Invalid delegation chain, removing delegation');
-      await storage.removeFromStorage(DELEGATION_KEY);
+      await platformStorage.removeFromStorage(DELEGATION_KEY);
     }
   }
 
@@ -35,7 +34,14 @@ export const retrieveValidDelegation = async (): Promise<
 export const saveDelegation = async (
   delegation: string,
 ): Promise<DelegationChain> => {
-  const storage = await getStorage();
-  await storage.saveToStorage(DELEGATION_KEY, delegation);
+  await platformStorage.saveToStorage(DELEGATION_KEY, delegation);
   return DelegationChain.fromJSON(delegation);
+};
+
+/**
+ * Removes the delegation chain from storage.
+ * @returns {Promise<void>} A promise that resolves when the delegation has been removed.
+ */
+export const removeDelegation = async (): Promise<void> => {
+  platformStorage.removeFromStorage(DELEGATION_KEY);
 };

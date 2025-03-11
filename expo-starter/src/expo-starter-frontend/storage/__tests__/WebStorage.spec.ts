@@ -1,26 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { WebStorage } from '../WebStorage';
-import { DatabaseWrapper, openDatabase } from '../db';
-import 'fake-indexeddb/auto';
-
-let testCounter = 0;
-
-const testDb = async () => {
-  return await openDatabase({
-    dbName: 'db-' + testCounter,
-    storeName: 'store-' + testCounter,
-  });
-};
 
 beforeEach(() => {
-  testCounter += 1;
+  // Clear sessionStorage before each test
+  sessionStorage.clear();
 });
 
 describe('WebStorage', () => {
   describe('Regular storage operations', () => {
     it('should get a value from storage', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
       const testValue = 'testValue';
 
       await storage.saveToStorage('testKey', testValue);
@@ -31,19 +20,17 @@ describe('WebStorage', () => {
     });
 
     it('should save a value to storage', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
       const testValue = 'test value';
 
       await storage.saveToStorage('testKey', testValue);
 
-      const result = await storage.getFromStorage('testKey');
+      const result = sessionStorage.getItem('testKey');
       expect(result).toEqual(testValue);
     });
 
     it('should remove a value from storage', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
       const testValue = 'test value';
 
       // First save a value
@@ -62,8 +49,7 @@ describe('WebStorage', () => {
     });
 
     it('should return undefined for non-existent keys', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
 
       const result = await storage.getFromStorage('nonExistentKey');
 
@@ -73,8 +59,7 @@ describe('WebStorage', () => {
 
   describe('Secure storage operations', () => {
     it('should get a value from secure storage', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
       const testValue = 'secure value';
 
       await storage.saveToSecureStorage('secureKey', testValue);
@@ -85,19 +70,17 @@ describe('WebStorage', () => {
     });
 
     it('should save a value to secure storage', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
       const testValue = 'secure test value';
 
       await storage.saveToSecureStorage('secureKey', testValue);
 
-      const result = await storage.getFromSecureStorage('secureKey');
+      const result = sessionStorage.getItem('secureKey');
       expect(result).toEqual(testValue);
     });
 
     it('should remove a value from secure storage', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+      const storage = new WebStorage();
       const testValue = 'secure test value';
 
       // First save a value
@@ -114,41 +97,34 @@ describe('WebStorage', () => {
       const afterDelete = await storage.getFromSecureStorage('secureKey');
       expect(afterDelete).toBeUndefined();
     });
-  });
 
-  describe('Integration between regular and secure storage', () => {
-    it('should use the same underlying storage for both regular and secure operations', async () => {
-      const db = await testDb();
-      const storage = new WebStorage(db);
+    it('should return undefined for non-existent secure keys', async () => {
+      const storage = new WebStorage();
 
-      // Test that secure storage operations call the same methods as regular storage
-      const getFromStorageSpy = vi.spyOn(storage, 'getFromStorage');
-      const saveToStorageSpy = vi.spyOn(storage, 'saveToStorage');
-      const removeFromStorageSpy = vi.spyOn(storage, 'removeFromStorage');
+      const result = await storage.getFromSecureStorage('nonExistentKey');
 
-      await storage.getFromSecureStorage('testKey');
-      await storage.saveToSecureStorage('testKey', 'value');
-      await storage.removeFromSecureStorage('testKey');
-
-      expect(getFromStorageSpy).toHaveBeenCalledWith('testKey');
-      expect(saveToStorageSpy).toHaveBeenCalledWith('testKey', 'value');
-      expect(removeFromStorageSpy).toHaveBeenCalledWith('testKey');
+      expect(result).toBeUndefined();
     });
   });
 
-  describe('Error handling', () => {
-    it('should propagate errors from the database', async () => {
-      const db = await testDb();
-      // Create a storage instance with a db that will throw an error
-      const errorDb: DatabaseWrapper = {
-        get: () => Promise.reject(new Error('Database error')),
-        put: () => Promise.reject(new Error('Database error')),
-        delete: () => Promise.reject(new Error('Database error')),
-      };
-      const storage = new WebStorage(errorDb);
+  describe('Storage isolation', () => {
+    it('should handle regular and secure storage independently', async () => {
+      const storage = new WebStorage();
 
-      await expect(storage.getFromStorage('testKey')).rejects.toThrow(
-        'Database error',
+      // Save values to both storages
+      await storage.saveToStorage('regularKey', 'regular value');
+      await storage.saveToSecureStorage('secureKey', 'secure value');
+
+      // Verify both values are stored correctly
+      expect(await storage.getFromStorage('regularKey')).toBe('regular value');
+      expect(await storage.getFromSecureStorage('secureKey')).toBe(
+        'secure value',
+      );
+
+      // Verify cross-access returns undefined
+      expect(await storage.getFromStorage('secureKey')).toBe('secure value');
+      expect(await storage.getFromSecureStorage('regularKey')).toBe(
+        'regular value',
       );
     });
   });

@@ -1,6 +1,16 @@
 import { DelegationIdentity } from '@dfinity/identity';
 import { createBackend, asymmetricKeys } from './backend';
-import { getAesOperationsInstance } from './aesOperationsInstance';
+import {
+  generateAesRawKey,
+  removeAesRawKey,
+  saveAesRawKey,
+} from './aesRawKeyUtils';
+import { platformCrypto } from 'expo-crypto-universal';
+import {
+  TransportSecretKey,
+  ibeDecrypt,
+  ibeEncrypt,
+} from 'vetkeys-client-utils';
 
 /**
  * Initializes or retrieves an AES key for encryption/decryption
@@ -12,22 +22,23 @@ import { getAesOperationsInstance } from './aesOperationsInstance';
 export const initAesKeyInternal = async (
   identity: DelegationIdentity | undefined,
 ) => {
-  const aesOperations = getAesOperationsInstance();
   const totalStartTime = performance.now();
 
   if (!identity) {
     console.log('No identity found, generating new AES key');
-    await aesOperations.generateAesKey();
+    await generateAesRawKey();
     return;
   }
 
-  aesOperations.clearAesRawKey();
+  await removeAesRawKey();
 
   const backend = createBackend(identity);
   const backendCallStartTime = performance.now();
+  const tskSeed = platformCrypto.getRandomBytes(32);
+  const tsk = new TransportSecretKey(tskSeed);
   const { publicKey, encryptedAesKey, encryptedKey } = await asymmetricKeys({
     backend,
-    transportPublicKey: aesOperations.transportPublicKey,
+    transportPublicKey: tsk.public_key(),
   });
   console.log(
     `Backend asymmetric_keys call took: ${
@@ -42,12 +53,20 @@ export const initAesKeyInternal = async (
   if (encryptedAesKey && encryptedKey) {
     console.log('Decrypting existing AES key');
     const decryptStartTime = performance.now();
-    await aesOperations.decryptExistingAesKey({
-      encryptedAesKey,
+    const aesRawKey = await ibeDecrypt({
+      ciphertext: encryptedAesKey,
+      principal: principal.toUint8Array(),
       encryptedKey,
       publicKey,
-      principal: principal.toUint8Array(),
+      tsk,
     });
+    await saveAesRawKey(aesRawKey);
+    // await aesOperations.decryptExistingAesKey({
+    //   encryptedAesKey,
+    //   encryptedKey,
+    //   publicKey,
+    //   principal: principal.toUint8Array(),
+    // });
     console.log(
       `Decrypting existing AES key took: ${
         performance.now() - decryptStartTime
@@ -56,10 +75,18 @@ export const initAesKeyInternal = async (
   } else {
     console.log('Generating and encrypting new AES key');
     const generateStartTime = performance.now();
-    const newEncryptedAesKey = await aesOperations.generateAndEncryptAesKey(
+    const aesRawKey = await generateAesRawKey();
+    const seed = platformCrypto.getRandomBytes(32);
+    const encryptedAesRawKey = await ibeEncrypt({
+      data: aesRawKey,
+      principal: principal.toUint8Array(),
       publicKey,
-      principalBytes,
-    );
+      seed,
+    });
+    // const newEncryptedAesKey = await aesOperations.generateAndEncryptAesKey(
+    //   publicKey,
+    //   principalBytes,
+    // );
     console.log(
       `Generating and encrypting new AES key took: ${
         performance.now() - generateStartTime
@@ -68,7 +95,7 @@ export const initAesKeyInternal = async (
 
     console.log('Saving new encrypted AES key');
     const saveStartTime = performance.now();
-    await backend.asymmetric_save_encrypted_aes_key(newEncryptedAesKey);
+    await backend.asymmetric_save_encrypted_aes_key(encryptedAesRawKey);
     console.log(
       `Saving encrypted AES key took: ${performance.now() - saveStartTime}ms`,
     );

@@ -3,6 +3,7 @@
   "name": "expo-starter-frontend",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "setup": "npm install && npx expo install --fix",
     "start": "expo start --clear",
@@ -10,9 +11,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "vitest",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage",
+    "test": "node --experimental-vm-modules node_modules/vitest/vitest.mjs",
+    "test:watch": "node --experimental-vm-modules node_modules/vitest/vitest.mjs watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/vitest/vitest.mjs run --coverage",
     "lint": "eslint ."
   },
   "dependencies": {
