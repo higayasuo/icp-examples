@@ -1,5 +1,5 @@
 import { DelegationChain, isDelegationValid } from '@dfinity/identity';
-import { platformStorage } from '../storage/platformStorage';
+import { platformStorage } from 'expo-storage-universal';
 
 const DELEGATION_KEY = 'delegation';
 

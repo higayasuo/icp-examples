@@ -14,7 +14,6 @@ export default defineConfig({
             '@dfinity/identity',
             'expo-crypto',
             'react-native',
-            'react-native-aes-gcm-crypto',
           ],
         },
       },
@@ -23,7 +22,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './'),
-      'react-native': 'react-native-web',
     },
   },
 });

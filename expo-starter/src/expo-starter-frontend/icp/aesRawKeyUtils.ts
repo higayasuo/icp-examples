@@ -1,8 +1,8 @@
 import * as base64 from 'base64-js';
-import { platformStorage } from '../storage/platformStorage';
+import { platformStorage } from 'expo-storage-universal';
 import { platformCrypto } from 'expo-crypto-universal';
 
-const AES_RAW_KEY_KEY = 'aesRawKey';
+const AES_RAW_KEY_KEY = 'fooBarHello';
 
 /**
  * Generates a new AES raw key and saves it to secure storage.

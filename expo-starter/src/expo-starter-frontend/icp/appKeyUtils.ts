@@ -1,5 +1,5 @@
 import { Ed25519KeyIdentity } from '@dfinity/identity';
-import { platformStorage } from '../storage/platformStorage';
+import { platformStorage } from 'expo-storage-universal';
 
 const APP_KEY_KEY = 'appKey';
 
