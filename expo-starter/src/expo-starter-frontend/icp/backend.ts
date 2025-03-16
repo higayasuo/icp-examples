@@ -1,8 +1,7 @@
 import { ENV_VARS } from '@/constants/env.generated';
 import { idlFactory, _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Identity, ActorSubclass } from '@dfinity/agent';
-import { HOST_ADDRESS } from './constants';
-import { createActor } from './createActor';
+import { LOCAL_IP_ADDRESS } from '../constants';
 import { CanisterManager } from 'canister-manager';
 
 export const createBackend = (
@@ -10,19 +9,24 @@ export const createBackend = (
 ): ActorSubclass<_SERVICE> => {
   const canisterManager = new CanisterManager({
     dfxNetwork: ENV_VARS.DFX_NETWORK,
-    localIPAddress: HOST_ADDRESS,
+    localIPAddress: LOCAL_IP_ADDRESS,
   });
-  const canisterUrl = canisterManager.getBackendCanisterURL(
-    ENV_VARS.CANISTER_ID_EXPO_STARTER_BACKEND,
-  );
-
-  return createActor<_SERVICE>({
-    canisterUrl,
+  return canisterManager.createActor<_SERVICE>({
     canisterId: ENV_VARS.CANISTER_ID_EXPO_STARTER_BACKEND,
-    dfxNetwork: ENV_VARS.DFX_NETWORK,
     interfaceFactory: idlFactory,
     identity,
   });
+  // const canisterUrl = canisterManager.getBackendCanisterURL(
+  //   ENV_VARS.CANISTER_ID_EXPO_STARTER_BACKEND,
+  // );
+
+  // return createActor<_SERVICE>({
+  //   canisterUrl,
+  //   canisterId: ENV_VARS.CANISTER_ID_EXPO_STARTER_BACKEND,
+  //   dfxNetwork: ENV_VARS.DFX_NETWORK,
+  //   interfaceFactory: idlFactory,
+  //   identity,
+  // });
 };
 
 type AsymmetricKeysArgs = {

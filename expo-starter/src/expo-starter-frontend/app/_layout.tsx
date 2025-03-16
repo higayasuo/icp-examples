@@ -106,11 +106,6 @@ function RootLayoutNav() {
     }
   }, [authError, showError]);
 
-  // Handle close error screen
-  const handleClose = () => {
-    setError(undefined);
-  };
-
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
