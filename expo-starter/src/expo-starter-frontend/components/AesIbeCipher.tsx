@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useIIIntegrationContext } from 'expo-ii-integration';
-import { getAesRawKey } from '@/icp/aesRawKeyUtils';
+import { getAesRawKey } from '@/aes/storage/aesRawKeyUtils';
 import { platformCrypto } from 'expo-crypto-universal';
 import { LogIn } from './LogIn';
 

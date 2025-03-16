@@ -49,7 +49,6 @@ export const setupAesRawKey = async (): Promise<Uint8Array> => {
     return generateAesRawKey();
   }
 };
-
 /**
  * Saves the provided AES raw key to secure storage.
  * @param {Uint8Array} aesRawKey - The AES raw key to save.
