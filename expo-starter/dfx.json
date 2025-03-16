@@ -36,6 +36,6 @@
   },
   "networks": {
   },
-  "output_env_file": "src/expo-starter-frontend/icp/env.txt",
+  "output_env_file": "src/expo-starter-frontend/constants/env.txt",
   "version": 1
 }

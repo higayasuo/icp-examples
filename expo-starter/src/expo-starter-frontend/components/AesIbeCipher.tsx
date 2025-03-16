@@ -10,13 +10,13 @@ import {
   TouchableWithoutFeedback,
   Platform,
 } from 'react-native';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useIIIntegrationContext } from 'expo-ii-integration';
 import { getAesRawKey } from '@/icp/aesRawKeyUtils';
 import { platformCrypto } from 'expo-crypto-universal';
 import { LogIn } from './LogIn';
 
 export const AesIbeCipher = () => {
-  const { identity, login } = useAuthContext();
+  const { identity, login } = useIIIntegrationContext();
   const [inputText, setInputText] = useState('');
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);

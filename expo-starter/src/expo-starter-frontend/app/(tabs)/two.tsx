@@ -1,14 +1,9 @@
 import { StyleSheet, View, Text } from 'react-native';
-import { useAuthContext } from '@/contexts/AuthContext';
+///import { useIIIntegrationContext } from '@/contexts/IIIntegrationContext';
+//import { useIIIntegrationContext } from 'expo-ii-integration';
 import { AesIbeCipher } from '@/components/AesIbeCipher';
 
 export default function TabTwoScreen() {
-  const { isReady } = useAuthContext();
-
-  if (!isReady) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>

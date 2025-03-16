@@ -1,4 +1,4 @@
-import { ENV_VARS } from '@/icp/env.generated';
+import { ENV_VARS } from '@/constants/env.generated';
 import { idlFactory, _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Identity, ActorSubclass } from '@dfinity/agent';
 import { HOST_ADDRESS } from './constants';

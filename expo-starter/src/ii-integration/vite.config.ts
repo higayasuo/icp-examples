@@ -7,6 +7,18 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     //sourcemap: true,
-    //minify: false
-  }
+    //minify: false,
+    // rollupOptions: {
+    //   output: {
+    //     format: 'es',
+    //   },
+    // },
+  },
+  // resolve: {
+  //   alias: {
+  //     '@dfinity/agent': '@dfinity/agent/lib/esm/index.js',
+  //     '@dfinity/auth-client': '@dfinity/auth-client/lib/esm/index.js',
+  //     '@dfinity/identity': '@dfinity/identity/lib/esm/index.js',
+  //   },
+  // },
 });

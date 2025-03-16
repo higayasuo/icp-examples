@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/package.json",
+  "$schema": "./node_modules/@types/package.json",
   "name": "expo-starter-frontend",
   "main": "expo-router/entry",
   "version": "1.0.0",
@@ -37,6 +37,7 @@
     "expo-crypto-universal": "^0.1.0",
     "expo-file-system": "~18.0.8",
     "expo-font": "~13.0.2",
+    "expo-ii-integration": "^0.1.0",
     "expo-linking": "~7.0.5",
     "expo-router": "~4.0.17",
     "expo-secure-store": "~14.0.1",

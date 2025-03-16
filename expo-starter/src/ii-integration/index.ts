@@ -126,7 +126,6 @@ const main = async (): Promise<void> => {
                   }
                 }
               } else {
-                console.log('No parent window found, using direct redirection');
                 throw new Error('No parent window found');
               }
             } catch (error) {

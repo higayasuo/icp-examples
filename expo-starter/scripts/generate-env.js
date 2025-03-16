@@ -7,9 +7,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Path to env.txt
-const envTxtPath = path.join(__dirname, '../src/expo-starter-frontend/icp/env.txt');
+const envTxtPath = path.join(__dirname, '../src/expo-starter-frontend/constants/env.txt');
 // Path to output file
-const outputPath = path.join(__dirname, '../src/expo-starter-frontend/icp/env.generated.ts');
+const outputPath = path.join(__dirname, '../src/expo-starter-frontend/constants/env.generated.ts');
 
 try {
   // Read env.txt

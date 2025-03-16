@@ -4,14 +4,12 @@
     "module": "ES2020",
     "lib": ["ES2020", "DOM"],
     "moduleResolution": "bundler",
-    "outDir": "./src-js",
-    "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": true
   },
   "include": ["./**/*"],
-  "exclude": ["node_modules", "dist", "assets", "vite.config.ts", "src-js"]
+  "exclude": ["node_modules", "dist", "assets", "vite.config.ts"]
 }

@@ -1,5 +1,5 @@
 import { DelegationChain, DelegationIdentity } from '@dfinity/identity';
-import { setupAppKey } from './appKeyUtils';
+import { getAppKey } from './appKeyUtils';
 
 /**
  * Creates a DelegationIdentity from a DelegationChain using the app's key
@@ -9,6 +9,6 @@ import { setupAppKey } from './appKeyUtils';
 export const identityFromDelegation = async (
   chain: DelegationChain,
 ): Promise<DelegationIdentity> => {
-  const appKey = await setupAppKey();
+  const appKey = await getAppKey();
   return DelegationIdentity.fromDelegation(appKey, chain);
 };

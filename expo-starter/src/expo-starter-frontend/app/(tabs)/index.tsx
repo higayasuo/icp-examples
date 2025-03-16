@@ -1,14 +1,7 @@
 import { StyleSheet, View } from 'react-native';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { WhoAmI } from '@/components/WhoAmI';
 
 export default function TabOneScreen() {
-  const { isReady } = useAuthContext();
-
-  if (!isReady) {
-    return null;
-  }
-
   return (
     <View style={styles.container} accessible={true}>
       <WhoAmI />

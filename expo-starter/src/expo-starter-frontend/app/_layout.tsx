@@ -4,21 +4,14 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
-import { useAuth } from '@/hooks/useAuth';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { useIIIntegration, IIIntegrationProvider } from 'expo-ii-integration';
 import { ErrorProvider } from '@/contexts/ErrorContext';
-import {
-  View,
-  ActivityIndicator,
-  Text,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-} from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 
 import { useError } from '@/contexts/ErrorContext';
 import { initAesKeyInternal } from '@/icp/initAesKeyInternal';
-
+import { LOCAL_IP_ADDRESS } from '@/constants';
+import { ENV_VARS } from '@/constants/env.generated';
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
@@ -59,7 +52,12 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const auth = useAuth();
+  const auth = useIIIntegration({
+    localIPAddress: LOCAL_IP_ADDRESS,
+    dfxNetwork: ENV_VARS.DFX_NETWORK,
+    iiIntegrationCanisterId: ENV_VARS.CANISTER_ID_II_INTEGRATION,
+    iiCanisterId: ENV_VARS.CANISTER_ID_INTERNET_IDENTITY,
+  });
   const { isReady, identity, authError } = auth;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown | undefined>(undefined);
@@ -139,7 +137,7 @@ function RootLayoutNav() {
   }
 
   return (
-    <AuthProvider value={auth}>
+    <IIIntegrationProvider value={auth}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -147,7 +145,7 @@ function RootLayoutNav() {
       >
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </AuthProvider>
+    </IIIntegrationProvider>
   );
 }
 

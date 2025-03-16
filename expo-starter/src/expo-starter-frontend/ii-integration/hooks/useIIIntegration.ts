@@ -4,28 +4,31 @@ import { DelegationIdentity } from '@dfinity/identity';
 import * as WebBrowser from 'expo-web-browser';
 import { useURL, createURL } from 'expo-linking';
 import { usePathname } from 'expo-router';
+import { Platform } from 'react-native';
 
-import { ENV_VARS } from '@/icp/env.generated';
-import {
-  setupAppKey,
-  getAppKey,
-  findAppKey,
-  generateAppKey,
-} from '@/icp/appKeyUtils';
+import { CanisterManager } from 'canister-manager';
+
+import { getAppKey, findAppKey, generateAppKey } from '../storage/appKeyUtils';
 import {
   findValidDelegation,
   saveDelegation,
   removeDelegation,
-} from '@/icp/delegationUtils';
-import { identityFromDelegation } from '@/icp/identityUtils';
-import { IIIntegrationMessenger } from '@/icp/IIIntegrationMessenger';
-import { Platform } from 'react-native';
-import { CanisterManager } from 'canister-manager';
-import { HOST_ADDRESS } from '@/icp/constants';
+} from '../storage/delegationUtils';
+import { identityFromDelegation } from '../storage/identityUtils';
 
-const iiIntegrationMessenger = new IIIntegrationMessenger();
+export type UseIIAuthParams = {
+  localIPAddress: string;
+  dfxNetwork: string;
+  iiIntegrationCanisterId: string;
+  iiCanisterId: string;
+};
 
-export function useAuth() {
+export function useIIIntegration({
+  localIPAddress,
+  dfxNetwork,
+  iiIntegrationCanisterId,
+  iiCanisterId,
+}: UseIIAuthParams) {
   const [isReady, setIsReady] = useState(false);
   const url = useURL();
   const [identity, setIdentity] = useState<DelegationIdentity | undefined>(
@@ -122,17 +125,15 @@ export function useAuth() {
       const pubkey = toHex(appKey.getPublicKey().toDer());
 
       const canisterManager = new CanisterManager({
-        dfxNetwork: ENV_VARS.DFX_NETWORK,
-        localIPAddress: HOST_ADDRESS,
+        dfxNetwork,
+        localIPAddress,
       });
 
-      const iiUri = canisterManager.getInternetIdentityURL(
-        ENV_VARS.CANISTER_ID_INTERNET_IDENTITY,
-      );
+      const iiUri = canisterManager.getInternetIdentityURL(iiCanisterId);
       console.log('iiUri', iiUri);
 
       const iiIntegrationURL = canisterManager.getFrontendCanisterURL(
-        ENV_VARS.CANISTER_ID_II_INTEGRATION,
+        iiIntegrationCanisterId,
       );
       const url = new URL(iiIntegrationURL);
 
@@ -140,19 +141,7 @@ export function useAuth() {
       url.searchParams.set('pubkey', pubkey);
       url.searchParams.set('ii_uri', iiUri);
 
-      if (Platform.OS === 'web') {
-        iiIntegrationMessenger.on('success', async (response) => {
-          console.log('IIIntegration success');
-          await setupIdentityFromDelegation(response.delegation);
-          iiIntegrationMessenger.close();
-        });
-
-        await iiIntegrationMessenger.open({
-          url: url.toString(),
-        });
-      } else {
-        await WebBrowser.openBrowserAsync(url.toString());
-      }
+      await WebBrowser.openBrowserAsync(url.toString());
     } catch (error) {
       setAuthError(error);
     }

@@ -3,7 +3,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs, usePathname } from 'expo-router';
 import { LogIn } from '@/components/LogIn';
 import { LogOut } from '@/components/LogOut';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useIIIntegrationContext } from 'expo-ii-integration';
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
  */
@@ -15,7 +15,7 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const { identity, login, logout, pathWhenLogin } = useAuthContext();
+  const { identity, login, logout, pathWhenLogin } = useIIIntegrationContext();
   const pathname = usePathname();
   const path = pathWhenLogin ?? pathname;
 

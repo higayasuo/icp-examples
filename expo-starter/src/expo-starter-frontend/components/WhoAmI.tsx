@@ -13,14 +13,14 @@ import {
   disabledButtonStyles,
   buttonTextStyles,
 } from './styles';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { createBackend } from '@/icp/backend';
 import { useError } from '@/contexts/ErrorContext';
+import { useIIIntegrationContext } from 'expo-ii-integration';
 /**
  * Component that displays the whoami functionality
  */
 export const WhoAmI = () => {
-  const { identity } = useAuthContext();
+  const { identity } = useIIIntegrationContext();
   const [who, setWho] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
