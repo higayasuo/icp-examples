@@ -1,30 +1,36 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { initAesKeyInternal } from './initAesKeyInternal';
 import { Identity } from '@dfinity/agent';
-import { createBackend, asymmetricKeys } from '@/icp/backend';
 import { TransportSecretKey } from 'vetkeys-client-utils';
 import { platformCrypto } from 'expo-crypto-universal';
 import { generateAesRawKey } from '../storage/aesRawKeyUtils';
 
-type UseAesKeyArgs = {
-  identity: Identity | undefined;
+export type AsymmetricKeysResult = {
+  publicKey: Uint8Array;
+  encryptedAesKey: Uint8Array | undefined;
+  encryptedKey: Uint8Array | undefined;
 };
 
-export const useAesKey = ({ identity }: UseAesKeyArgs) => {
+export interface AesBackend {
+  asymmetricKeys: (
+    transportPublicKey: Uint8Array,
+  ) => Promise<AsymmetricKeysResult>;
+
+  asymmetricSaveEncryptedAesKey: (encryptedAesKey: Uint8Array) => Promise<void>;
+}
+
+type UseAesKeyArgs = {
+  identity: Identity | undefined;
+  backend: AesBackend;
+};
+
+export const useAesKey = ({ identity, backend }: UseAesKeyArgs) => {
   const [isProcessingAes, setIsProcessingAes] = useState(false);
   const aesErrorRef = useRef<unknown | undefined>(undefined);
-  const isProcessingAesRef = useRef(false);
 
   const initAesKey = useCallback(async () => {
-    // Don't run if already loading
-    if (isProcessingAesRef.current) {
-      console.log('Skipping because already processing');
-      return;
-    }
-
     try {
       aesErrorRef.current = undefined;
-      isProcessingAesRef.current = true;
       setIsProcessingAes(true);
 
       if (!identity) {
@@ -35,16 +41,11 @@ export const useAesKey = ({ identity }: UseAesKeyArgs) => {
 
       const tskSeed = platformCrypto.getRandomBytes(32);
       const tsk = new TransportSecretKey(tskSeed);
-      const backend = await createBackend(identity);
       const principal = identity.getPrincipal().toUint8Array();
       console.log('Getting asymmetric keys');
       const asymmetricKeysStartTime = performance.now();
-      const { publicKey, encryptedAesKey, encryptedKey } = await asymmetricKeys(
-        {
-          backend,
-          transportPublicKey: tsk.public_key(),
-        },
-      );
+      const { publicKey, encryptedAesKey, encryptedKey } =
+        await backend.asymmetricKeys(tsk.public_key());
       console.log(
         `Getting asymmetric keys took: ${
           performance.now() - asymmetricKeysStartTime
@@ -62,7 +63,7 @@ export const useAesKey = ({ identity }: UseAesKeyArgs) => {
       if (newEncryptedAesKey) {
         console.log('Saving AES key to backend');
         const saveEncryptedAesKeyStartTime = performance.now();
-        await backend.asymmetric_save_encrypted_aes_key(newEncryptedAesKey);
+        await backend.asymmetricSaveEncryptedAesKey(newEncryptedAesKey);
         console.log(
           `Saving AES key to backend took: ${
             performance.now() - saveEncryptedAesKeyStartTime
@@ -73,7 +74,6 @@ export const useAesKey = ({ identity }: UseAesKeyArgs) => {
       console.error('Failed to initialize AES key:', err);
       aesErrorRef.current = err;
     } finally {
-      isProcessingAesRef.current = false;
       setIsProcessingAes(false);
     }
   }, [identity]);

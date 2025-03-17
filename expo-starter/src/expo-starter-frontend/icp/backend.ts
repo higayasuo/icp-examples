@@ -3,6 +3,14 @@ import { idlFactory, _SERVICE } from '@/icp/expo-starter-backend.did';
 import { Identity, ActorSubclass } from '@dfinity/agent';
 import { LOCAL_IP_ADDRESS } from '../constants';
 import { CanisterManager } from 'canister-manager';
+import { AesBackend, AsymmetricKeysResult } from '@/aes/hooks/useAesKey';
+
+export const createAesBackend = (
+  identity: Identity | undefined,
+): AesBackend => {
+  const backend = createBackend(identity);
+  return wrapAesBackend(backend);
+};
 
 export const createBackend = (
   identity: Identity | undefined,
@@ -29,21 +37,28 @@ export const createBackend = (
   // });
 };
 
+export const wrapAesBackend = (
+  backend: ActorSubclass<_SERVICE>,
+): AesBackend => {
+  return {
+    asymmetricKeys: async (transportPublicKey) => {
+      return asymmetricKeys({ backend, transportPublicKey });
+    },
+    asymmetricSaveEncryptedAesKey: async (encryptedAesKey) => {
+      await backend.asymmetric_save_encrypted_aes_key(encryptedAesKey);
+    },
+  };
+};
+
 type AsymmetricKeysArgs = {
   backend: ActorSubclass<_SERVICE>;
   transportPublicKey: Uint8Array;
 };
 
-type AsymmetricKeysReply = {
-  publicKey: Uint8Array;
-  encryptedAesKey: Uint8Array | undefined;
-  encryptedKey: Uint8Array | undefined;
-};
-
 export const asymmetricKeys = async ({
   backend,
   transportPublicKey,
-}: AsymmetricKeysArgs): Promise<AsymmetricKeysReply> => {
+}: AsymmetricKeysArgs): Promise<AsymmetricKeysResult> => {
   const keysReply = await backend.asymmetric_keys(transportPublicKey);
 
   const publicKey = keysReply.public_key as Uint8Array;
