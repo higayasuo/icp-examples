@@ -1,9 +1,26 @@
 import { StyleSheet, View, Text } from 'react-native';
 ///import { useIIIntegrationContext } from '@/contexts/IIIntegrationContext';
-//import { useIIIntegrationContext } from 'expo-ii-integration';
+import { useIIIntegrationContext } from 'expo-ii-integration';
 import { AesIbeCipher } from '@/components/AesIbeCipher';
+import { useAesKey, AesProcessingView } from '@/aes';
+import { useError } from '@/contexts/ErrorContext';
+import { useEffect } from 'react';
 
 export default function TabTwoScreen() {
+  const { identity } = useIIIntegrationContext();
+  const { isProcessingAes, aesError } = useAesKey({ identity });
+  const { showError } = useError();
+
+  useEffect(() => {
+    if (aesError) {
+      showError(aesError);
+    }
+  }, [aesError, showError]);
+
+  if (isProcessingAes) {
+    return <AesProcessingView />;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>

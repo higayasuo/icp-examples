@@ -6,11 +6,11 @@ import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 import { useIIIntegration, IIIntegrationProvider } from 'expo-ii-integration';
 import { ErrorProvider } from '@/contexts/ErrorContext';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 
 import { useError } from '@/contexts/ErrorContext';
 import { LOCAL_IP_ADDRESS, ENV_VARS } from '@/constants';
-import { useAesKey, AesProcessingView } from '@/aes';
+//import { useAesKey, AesProcessingView } from '@/aes';
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -56,15 +56,15 @@ function RootLayoutNav() {
   });
 
   const { identity, authError, isReady } = auth;
-  const { isProcessingAes, aesError } = useAesKey({ identity });
+  //const { isProcessingAes, aesError } = useAesKey({ identity });
   const { showError } = useError();
-  const error = authError || aesError;
+  //const error = authError || aesError;
 
   useEffect(() => {
-    if (error) {
-      showError(error);
+    if (authError) {
+      showError(authError);
     }
-  }, [error, showError]);
+  }, [authError, showError]);
 
   // Memoize the main content view to prevent recreation on each render
   const mainContentView = useMemo(
@@ -86,9 +86,9 @@ function RootLayoutNav() {
     return <LoadingView />;
   }
 
-  if (isProcessingAes) {
-    return <AesProcessingView />;
-  }
+  // if (isProcessingAes) {
+  //   return <AesProcessingView />;
+  // }
 
   return mainContentView;
 }

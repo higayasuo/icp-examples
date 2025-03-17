@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { initAesKeyInternal } from './initAesKeyInternal';
 import { Identity } from '@dfinity/agent';
 import { createBackend, asymmetricKeys } from '@/icp/backend';
@@ -11,96 +11,80 @@ type UseAesKeyArgs = {
 };
 
 export const useAesKey = ({ identity }: UseAesKeyArgs) => {
-  const [isProcessingAes, setIsProcessingAes] = useState(true);
-  const [aesError, setAesError] = useState<unknown | undefined>(undefined);
-  const isInitializedRef = useRef(false);
-  const lastProcessedIdentityRef = useRef<Identity | undefined>(undefined);
+  const [isProcessingAes, setIsProcessingAes] = useState(false);
+  const aesErrorRef = useRef<unknown | undefined>(undefined);
+  const isProcessingAesRef = useRef(false);
 
-  // Reset state when identity changes
-  useEffect(() => {
-    if (identity !== lastProcessedIdentityRef.current) {
-      setIsProcessingAes(true);
-      isInitializedRef.current = false;
-    }
-  }, [identity]);
-
-  // Initialize AES key
-  useEffect(() => {
-    // Skip if already initialized with this identity
-    if (
-      isInitializedRef.current &&
-      lastProcessedIdentityRef.current === identity
-    ) {
-      setIsProcessingAes(false);
+  const initAesKey = useCallback(async () => {
+    // Don't run if already loading
+    if (isProcessingAesRef.current) {
+      console.log('Skipping because already processing');
       return;
     }
 
-    let isMounted = true;
+    try {
+      aesErrorRef.current = undefined;
+      isProcessingAesRef.current = true;
+      setIsProcessingAes(true);
 
-    const initAes = async () => {
-      try {
-        setAesError(undefined);
-
-        if (!identity) {
-          try {
-            await generateAesRawKey();
-            isInitializedRef.current = true;
-            lastProcessedIdentityRef.current = identity;
-          } catch (err) {
-            console.error('Error generating AES key:', err);
-            if (isMounted) setAesError(err);
-          }
-          if (isMounted) setIsProcessingAes(false);
-          return;
-        }
-
-        const tskSeed = platformCrypto.getRandomBytes(32);
-        const tsk = new TransportSecretKey(tskSeed);
-        const backend = await createBackend(identity);
-        const principal = identity.getPrincipal().toUint8Array();
-
-        const { publicKey, encryptedAesKey, encryptedKey } =
-          await asymmetricKeys({
-            backend,
-            transportPublicKey: tsk.public_key(),
-          });
-
-        try {
-          const newEncryptedAesKey = await initAesKeyInternal({
-            publicKey,
-            encryptedAesKey,
-            encryptedKey,
-            principal,
-            tsk,
-          });
-
-          if (newEncryptedAesKey) {
-            await backend.asymmetric_save_encrypted_aes_key(newEncryptedAesKey);
-          }
-
-          isInitializedRef.current = true;
-          lastProcessedIdentityRef.current = identity;
-        } catch (err) {
-          console.error('Error calling initAesKeyInternal:', err);
-          if (isMounted) setAesError(err);
-        }
-      } catch (err) {
-        console.error('Failed to initialize AES key:', err);
-        if (isMounted) setAesError(err);
-      } finally {
-        if (isMounted) setIsProcessingAes(false);
+      if (!identity) {
+        console.log('Generating AES key');
+        await generateAesRawKey();
+        return;
       }
-    };
 
-    initAes();
+      const tskSeed = platformCrypto.getRandomBytes(32);
+      const tsk = new TransportSecretKey(tskSeed);
+      const backend = await createBackend(identity);
+      const principal = identity.getPrincipal().toUint8Array();
+      console.log('Getting asymmetric keys');
+      const asymmetricKeysStartTime = performance.now();
+      const { publicKey, encryptedAesKey, encryptedKey } = await asymmetricKeys(
+        {
+          backend,
+          transportPublicKey: tsk.public_key(),
+        },
+      );
+      console.log(
+        `Getting asymmetric keys took: ${
+          performance.now() - asymmetricKeysStartTime
+        }ms`,
+      );
 
-    return () => {
-      isMounted = false;
-    };
+      const newEncryptedAesKey = await initAesKeyInternal({
+        publicKey,
+        encryptedAesKey,
+        encryptedKey,
+        principal,
+        tsk,
+      });
+
+      if (newEncryptedAesKey) {
+        console.log('Saving AES key to backend');
+        const saveEncryptedAesKeyStartTime = performance.now();
+        await backend.asymmetric_save_encrypted_aes_key(newEncryptedAesKey);
+        console.log(
+          `Saving AES key to backend took: ${
+            performance.now() - saveEncryptedAesKeyStartTime
+          }ms`,
+        );
+      }
+    } catch (err) {
+      console.error('Failed to initialize AES key:', err);
+      aesErrorRef.current = err;
+    } finally {
+      isProcessingAesRef.current = false;
+      setIsProcessingAes(false);
+    }
   }, [identity]);
+
+  // Initialize on first load and when identity changes
+  useEffect(() => {
+    initAesKey();
+  }, [identity, initAesKey]);
 
   return {
     isProcessingAes,
-    aesError,
+    aesError: aesErrorRef.current,
   };
 };
