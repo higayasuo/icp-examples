@@ -11,9 +11,10 @@ import {
   Platform,
 } from 'react-native';
 import { useIIIntegrationContext } from 'expo-ii-integration';
-import { getAesRawKey } from '@/aes/storage/aesRawKeyUtils';
+import { aesRawKeyStorage } from '@/storage';
 import { platformCrypto } from 'expo-crypto-universal';
 import { LogIn } from './LogIn';
+import { getAesRawKey } from '@/aes/storage/aesRawKeyUtils';
 
 export const AesIbeCipher = () => {
   const { identity, login } = useIIIntegrationContext();
@@ -38,7 +39,7 @@ export const AesIbeCipher = () => {
     setError(undefined);
 
     try {
-      const aesRawKey = await getAesRawKey();
+      const aesRawKey = await aesRawKeyStorage.retrieve();
       const plaintextBytes = new TextEncoder().encode(inputText);
       const ciphertext = await platformCrypto.aesEncryptAsync(
         plaintextBytes,

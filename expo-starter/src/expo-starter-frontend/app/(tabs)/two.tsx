@@ -1,15 +1,22 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Platform } from 'react-native';
 import { useIIIntegrationContext } from 'expo-ii-integration';
 import { AesIbeCipher } from '@/components/AesIbeCipher';
-import { useAesKey, AesProcessingView } from '@/aes';
+import { useAesKey, AesProcessingView } from 'expo-aes-vetkeys';
 import { useError } from '@/contexts/ErrorContext';
 import { useEffect } from 'react';
 import { createAesBackend } from '@/icp/backend';
+import { aesRawKeyStorage } from '@/storage';
+import { platformCrypto } from 'expo-crypto-universal';
 
 export default function TabTwoScreen() {
   const { identity } = useIIIntegrationContext();
   const backend = createAesBackend(identity);
-  const { isProcessingAes, aesError } = useAesKey({ identity, backend });
+  const { isProcessingAes, aesError } = useAesKey({
+    identity,
+    backend,
+    cryptoModule: platformCrypto,
+    aesRawKeyStorage,
+  });
   const { showError } = useError();
 
   useEffect(() => {

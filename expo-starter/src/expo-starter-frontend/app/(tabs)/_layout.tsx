@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Href, Redirect, Tabs, usePathname } from 'expo-router';
 import { LogIn } from '@/components/LogIn';
