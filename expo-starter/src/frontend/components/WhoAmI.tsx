@@ -6,14 +6,13 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
-import { _SERVICE } from '@/icp/expo-starter-backend.did';
 import {
   baseTextStyles,
   buttonStyles,
   disabledButtonStyles,
   buttonTextStyles,
 } from './styles';
-import { createBackend } from '@/icp/backend';
+import { createBackend } from '@/backend';
 import { useError } from '@/contexts/ErrorContext';
 import { useIIIntegrationContext } from 'expo-ii-integration';
 /**

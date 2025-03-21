@@ -1,5 +1,5 @@
 import { ENV_VARS } from '@/constants/env.generated';
-import { idlFactory, _SERVICE } from '@/icp/backend.did';
+import { idlFactory, _SERVICE } from './backend.did';
 import { Identity, ActorSubclass } from '@dfinity/agent';
 import { LOCAL_IP_ADDRESS } from '../constants';
 import { CanisterManager } from 'canister-manager';

@@ -4,7 +4,7 @@ import { AesIbeCipher } from '@/components/AesIbeCipher';
 import { useAesKey, AesProcessingView } from 'expo-aes-vetkeys';
 import { useError } from '@/contexts/ErrorContext';
 import { useEffect } from 'react';
-import { createAesBackend } from '@/icp/backend';
+import { createAesBackend } from '@/backend';
 import { aesRawKeyStorage } from '@/storage';
 import { platformCrypto } from 'expo-crypto-universal';
 

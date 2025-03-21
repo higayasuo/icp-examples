@@ -11,7 +11,7 @@ backend_underscore=${backend//-/_}
 frontend="frontend"
 did_file="src/${backend}/${backend}.did"
 wasm_file="target/wasm32-unknown-unknown/release/${backend_underscore}.wasm"
-icp_dir="src/${frontend}/icp"
+backend_dir="src/${frontend}/backend"
 declarations_dir="src/declarations/${backend}"
 declarations_did_file="${declarations_dir}/${backend}.did"
 declarations_did_d_ts_file="${declarations_did_file}.d.ts"
@@ -35,6 +35,6 @@ echo "Shrunk wasm"
 dfx generate -qq $backend
 echo "Generated declarations"
 
-cp $declarations_did_d_ts_file $icp_dir
-cp $declarations_did_js_file $icp_dir
+cp $declarations_did_d_ts_file $backend_dir
+cp $declarations_did_js_file $backend_dir
 echo "Copied declarations"
