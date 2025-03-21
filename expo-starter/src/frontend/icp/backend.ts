@@ -1,9 +1,9 @@
 import { ENV_VARS } from '@/constants/env.generated';
-import { idlFactory, _SERVICE } from '@/icp/expo-starter-backend.did';
+import { idlFactory, _SERVICE } from '@/icp/backend.did';
 import { Identity, ActorSubclass } from '@dfinity/agent';
 import { LOCAL_IP_ADDRESS } from '../constants';
 import { CanisterManager } from 'canister-manager';
-import { AesBackend, AsymmetricKeysResult } from '@/aes/hooks/useAesKey';
+import { AesBackend, AsymmetricKeysResult } from 'expo-aes-vetkeys';
 
 export const createAesBackend = (
   identity: Identity | undefined,
@@ -20,7 +20,7 @@ export const createBackend = (
     localIPAddress: LOCAL_IP_ADDRESS,
   });
   return canisterManager.createActor<_SERVICE>({
-    canisterId: ENV_VARS.CANISTER_ID_EXPO_STARTER_BACKEND,
+    canisterId: ENV_VARS.CANISTER_ID_BACKEND,
     interfaceFactory: idlFactory,
     identity,
   });

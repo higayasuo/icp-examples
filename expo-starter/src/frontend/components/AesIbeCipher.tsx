@@ -14,7 +14,6 @@ import { useIIIntegrationContext } from 'expo-ii-integration';
 import { aesRawKeyStorage } from '@/storage';
 import { platformCrypto } from 'expo-crypto-universal';
 import { LogIn } from './LogIn';
-import { getAesRawKey } from '@/aes/storage/aesRawKeyUtils';
 
 export const AesIbeCipher = () => {
   const { identity, login } = useIIIntegrationContext();

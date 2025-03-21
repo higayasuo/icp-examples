@@ -6,10 +6,9 @@ SCRIPT_DIR=$(cd $(dirname $0) && pwd)
 # Move to the project root directory
 cd $SCRIPT_DIR/..
 
-project="expo-starter"
-backend="${project}-backend"
+backend="backend"
 backend_underscore=${backend//-/_}
-frontend="${project}-frontend"
+frontend="frontend"
 did_file="src/${backend}/${backend}.did"
 wasm_file="target/wasm32-unknown-unknown/release/${backend_underscore}.wasm"
 icp_dir="src/${frontend}/icp"

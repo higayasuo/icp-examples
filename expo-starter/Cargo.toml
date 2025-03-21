@@ -1,5 +1,3 @@
 [workspace]
-members = [
-    "src/expo-starter-backend"
-]
+members = ["src/backend"]
 resolver = "2"
