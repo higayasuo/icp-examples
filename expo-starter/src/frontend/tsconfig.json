@@ -6,12 +6,14 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-native",
-    "typeRoots": ["./node_modules/@types", "./node_modules/ic-vetkd-utils"]
+    "typeRoots": ["./node_modules/@types", "./node_modules/ic-vetkd-utils"],
+    "allowImportingTsExtensions": true,
+    "allowArbitraryExtensions": true
   },
   "include": [
     "**/*.ts",

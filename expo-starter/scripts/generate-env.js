@@ -6,10 +6,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const constantsDir = path.join(__dirname, '../src/frontend/constants');
 // Path to env.txt
-const envTxtPath = path.join(__dirname, '../src/expo-starter-frontend/constants/env.txt');
+const envTxtPath = path.join(constantsDir, 'env.txt');
 // Path to output file
-const outputPath = path.join(__dirname, '../src/expo-starter-frontend/constants/env.generated.ts');
+const outputPath = path.join(constantsDir, 'env.generated.ts');
 
 try {
   // Read env.txt
@@ -35,7 +36,7 @@ try {
   const tsContent = `// This file is auto-generated. Do not edit directly.
 // Generated from env.txt by dfx deploy
 
-type DFXNetwork = 'ic' | 'local';
+type DFXNetwork = 'ic' | 'local' | 'playground';
 
 export const ENV_VARS = {
   ...${JSON.stringify(envVars, null, 2)},
